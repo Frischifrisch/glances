@@ -79,10 +79,6 @@ class Plugin(GlancesPlugin):
             )
             stats['cpu_hz'] = self._mhz_to_hz(cpu_info['cpu_hz']) if cpu_info['cpu_hz'] is not None else None
 
-        elif self.input_method == 'snmp':
-            # Not available
-            pass
-
         # Update the stats
         self.stats = stats
 
@@ -128,8 +124,7 @@ class Plugin(GlancesPlugin):
                 msg_freq = ''
             if len(msg_name + msg_freq) - 6 <= max_width:
                 ret.append(self.curse_add_line(msg_name))
-            ret.append(self.curse_add_line(msg_freq))
-            ret.append(self.curse_new_line())
+            ret.extend((self.curse_add_line(msg_freq), self.curse_new_line()))
         for key in ['cpu', 'mem', 'swap']:
             if key == 'cpu' and args.percpu:
                 if sparkline_tag:

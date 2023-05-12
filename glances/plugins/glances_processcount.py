@@ -78,11 +78,6 @@ class Plugin(GlancesPlugin):
 
             # Return the processes count
             stats = glances_processes.get_count()
-        elif self.input_method == 'snmp':
-            # Update stats using SNMP
-            # Not availaible
-            pass
-
         # Update the stats
         self.stats = stats
 
@@ -106,14 +101,12 @@ class Plugin(GlancesPlugin):
         if glances_processes.process_filter is not None:
             msg = 'Processes filter:'
             ret.append(self.curse_add_line(msg, "TITLE"))
-            msg = ' {} '.format(glances_processes.process_filter)
+            msg = f' {glances_processes.process_filter} '
             if glances_processes.process_filter_key is not None:
-                msg += 'on column {} '.format(glances_processes.process_filter_key)
+                msg += f'on column {glances_processes.process_filter_key} '
             ret.append(self.curse_add_line(msg, "FILTER"))
             msg = '(\'ENTER\' to edit, \'E\' to reset)'
-            ret.append(self.curse_add_line(msg))
-            ret.append(self.curse_new_line())
-
+            ret.extend((self.curse_add_line(msg), self.curse_new_line()))
         # Build the string message
         # Header
         msg = 'TASKS'
@@ -124,20 +117,20 @@ class Plugin(GlancesPlugin):
         ret.append(self.curse_add_line(msg))
 
         if 'thread' in self.stats:
-            msg = ' ({} thr),'.format(self.stats['thread'])
+            msg = f" ({self.stats['thread']} thr),"
             ret.append(self.curse_add_line(msg))
 
         if 'running' in self.stats:
             other -= self.stats['running']
-            msg = ' {} run,'.format(self.stats['running'])
+            msg = f" {self.stats['running']} run,"
             ret.append(self.curse_add_line(msg))
 
         if 'sleeping' in self.stats:
             other -= self.stats['sleeping']
-            msg = ' {} slp,'.format(self.stats['sleeping'])
+            msg = f" {self.stats['sleeping']} slp,"
             ret.append(self.curse_add_line(msg))
 
-        msg = ' {} oth '.format(other)
+        msg = f' {other} oth '
         ret.append(self.curse_add_line(msg))
 
         # Display sort information
@@ -149,9 +142,9 @@ class Plugin(GlancesPlugin):
         if glances_processes.auto_sort:
             msg += ' sorted automatically'
             ret.append(self.curse_add_line(msg))
-            msg = ' by {}'.format(sort_human)
+            msg = f' by {sort_human}'
         else:
-            msg += ' sorted by {}'.format(sort_human)
+            msg += f' sorted by {sort_human}'
         ret.append(self.curse_add_line(msg))
 
         # Return the message with decoration

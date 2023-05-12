@@ -51,7 +51,9 @@ class GlancesStandalone(object):
         start_duration = Counter()
         start_duration.reset()
         self.stats = GlancesStats(config=config, args=args)
-        logger.debug("Plugins initialisation duration: {} seconds".format(start_duration.get()))
+        logger.debug(
+            f"Plugins initialisation duration: {start_duration.get()} seconds"
+        )
 
         # Modules (plugins and exporters) are loaded at this point
         # Glances can display the list if asked...
@@ -78,7 +80,7 @@ class GlancesStandalone(object):
         # Initial system information update
         start_duration.reset()
         self.stats.update()
-        logger.debug("First stats update duration: {} seconds".format(start_duration.get()))
+        logger.debug(f"First stats update duration: {start_duration.get()} seconds")
 
         if self.quiet:
             logger.info("Quiet mode is ON, nothing will be displayed")
@@ -93,11 +95,15 @@ class GlancesStandalone(object):
             # Init screen
             self.screen = GlancesStdoutApiDoc(config=config, args=args)
         elif args.stdout:
-            logger.info("Stdout mode is ON, following stats will be displayed: {}".format(args.stdout))
+            logger.info(
+                f"Stdout mode is ON, following stats will be displayed: {args.stdout}"
+            )
             # Init screen
             self.screen = GlancesStdout(config=config, args=args)
         elif args.stdout_csv:
-            logger.info("Stdout CSV mode is ON, following stats will be displayed: {}".format(args.stdout_csv))
+            logger.info(
+                f"Stdout CSV mode is ON, following stats will be displayed: {args.stdout_csv}"
+            )
             # Init screen
             self.screen = GlancesStdoutCsv(config=config, args=args)
         else:
@@ -137,31 +143,26 @@ class GlancesStandalone(object):
         # Start a counter used to compute the time needed
         counter = Counter()
         self.stats.update()
-        logger.debug('Stats updated duration: {} seconds'.format(counter.get()))
+        logger.debug(f'Stats updated duration: {counter.get()} seconds')
 
         # Export stats
         # Start a counter used to compute the time needed
         counter_export = Counter()
         self.stats.export(self.stats)
-        logger.debug('Stats exported duration: {} seconds'.format(counter_export.get()))
+        logger.debug(f'Stats exported duration: {counter_export.get()} seconds')
 
         # Patch for issue1326 to avoid < 0 refresh
         adapted_refresh = self.refresh_time - counter.get()
-        adapted_refresh = adapted_refresh if adapted_refresh > 0 else 0
+        adapted_refresh = max(adapted_refresh, 0)
 
-        # Display stats
-        # and wait refresh_time - counter
         if not self.quiet:
             # The update function return True if an exit key 'q' or 'ESC'
             # has been pressed.
-            ret = not self.screen.update(self.stats, duration=adapted_refresh)
-        else:
-            # Nothing is displayed
-            # Break should be done via a signal (CTRL-C)
-            time.sleep(adapted_refresh)
-            ret = True
-
-        return ret
+            return not self.screen.update(self.stats, duration=adapted_refresh)
+        # Nothing is displayed
+        # Break should be done via a signal (CTRL-C)
+        time.sleep(adapted_refresh)
+        return True
 
     def serve_forever(self):
         """Wrapper to the serve_forever function."""
@@ -192,8 +193,6 @@ class GlancesStandalone(object):
         # Check Glances version versus PyPI one
         if self.outdated.is_outdated():
             print(
-                "You are using Glances version {}, however version {} is available.".format(
-                    self.outdated.installed_version(), self.outdated.latest_version()
-                )
+                f"You are using Glances version {self.outdated.installed_version()}, however version {self.outdated.latest_version()} is available."
             )
             print("You should consider upgrading using: pip install --upgrade glances")

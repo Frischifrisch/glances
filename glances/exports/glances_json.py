@@ -23,15 +23,14 @@ class Export(GlancesExport):
         try:
             if PY3:
                 self.json_file = open(self.json_filename, 'w')
-                self.json_file.close()
             else:
                 self.json_file = open(self.json_filename, 'wb')
-                self.json_file.close()
+            self.json_file.close()
         except IOError as e:
-            logger.critical("Cannot create the JSON file: {}".format(e))
+            logger.critical(f"Cannot create the JSON file: {e}")
             sys.exit(2)
 
-        logger.info("Exporting stats to file: {}".format(self.json_filename))
+        logger.info(f"Exporting stats to file: {self.json_filename}")
 
         self.export_enable = True
 
@@ -40,7 +39,7 @@ class Export(GlancesExport):
 
     def exit(self):
         """Close the JSON file."""
-        logger.debug("Finalise export interface %s" % self.export_name)
+        logger.debug(f"Finalise export interface {self.export_name}")
         self.json_file.close()
 
     def export(self, name, columns, points):
@@ -50,15 +49,17 @@ class Export(GlancesExport):
         if name == self.plugins_to_export()[0] and self.buffer != {}:
             # One whole loop has been completed
             # Flush stats to file
-            logger.debug("Exporting stats ({}) to JSON file ({})".format(listkeys(self.buffer), self.json_filename))
+            logger.debug(
+                f"Exporting stats ({listkeys(self.buffer)}) to JSON file ({self.json_filename})"
+            )
 
             # Export stats to JSON file
             if PY3:
                 with open(self.json_filename, "w") as self.json_file:
-                    self.json_file.write("{}\n".format(json.dumps(self.buffer)))
+                    self.json_file.write(f"{json.dumps(self.buffer)}\n")
             else:
                 with open(self.json_filename, "wb") as self.json_file:
-                    self.json_file.write("{}\n".format(json.dumps(self.buffer)))
+                    self.json_file.write(f"{json.dumps(self.buffer)}\n")
 
             # Reset buffer
             self.buffer = {}

@@ -19,6 +19,7 @@
 
 """GPU plugin (limited to NVIDIA chipsets)."""
 
+
 from glances.compat import nativestr, to_fahrenheit
 from glances.logger import logger
 from glances.plugins.glances_plugin import GlancesPlugin
@@ -29,7 +30,7 @@ try:
 except Exception as e:
     import_error_tag = True
     # Display debug message if import KeyError
-    logger.warning("Missing Python Lib ({}), Nvidia GPU plugin is disabled".format(e))
+    logger.warning(f"Missing Python Lib ({e}), Nvidia GPU plugin is disabled")
 else:
     import_error_tag = False
 
@@ -120,10 +121,6 @@ class Plugin(GlancesPlugin):
 
         if self.input_method == 'local':
             stats = self.get_device_stats()
-        elif self.input_method == 'snmp':
-            # not available
-            pass
-
         # Update the stats
         self.stats = stats
 
@@ -172,11 +169,8 @@ class Plugin(GlancesPlugin):
         # Header
         header = ''
         if len(self.stats) > 1:
-            header += '{} '.format(len(self.stats))
-        if same_name:
-            header += '{} {}'.format('GPU', gpu_stats['name'])
-        else:
-            header += '{}'.format('GPU')
+            header += f'{len(self.stats)} '
+        header += f"GPU {gpu_stats['name']}" if same_name else f'GPU'
         msg = header[:17]
         ret.append(self.curse_add_line(msg, "TITLE"))
 
@@ -196,14 +190,20 @@ class Plugin(GlancesPlugin):
                 msg = '{:13}'.format('proc mean:')
             else:
                 msg = '{:13}'.format('proc:')
-            ret.append(self.curse_add_line(msg))
-            ret.append(
-                self.curse_add_line(
-                    mean_proc_msg, self.get_views(item=gpu_stats[self.get_key()], key='proc', option='decoration')
+            ret.extend(
+                (
+                    self.curse_add_line(msg),
+                    self.curse_add_line(
+                        mean_proc_msg,
+                        self.get_views(
+                            item=gpu_stats[self.get_key()],
+                            key='proc',
+                            option='decoration',
+                        ),
+                    ),
+                    self.curse_new_line(),
                 )
             )
-            # New line
-            ret.append(self.curse_new_line())
             # GPU MEM
             try:
                 mean_mem = sum(s['mem'] for s in self.stats if s is not None) / len(self.stats)
@@ -215,14 +215,20 @@ class Plugin(GlancesPlugin):
                 msg = '{:13}'.format('mem mean:')
             else:
                 msg = '{:13}'.format('mem:')
-            ret.append(self.curse_add_line(msg))
-            ret.append(
-                self.curse_add_line(
-                    mean_mem_msg, self.get_views(item=gpu_stats[self.get_key()], key='mem', option='decoration')
+            ret.extend(
+                (
+                    self.curse_add_line(msg),
+                    self.curse_add_line(
+                        mean_mem_msg,
+                        self.get_views(
+                            item=gpu_stats[self.get_key()],
+                            key='mem',
+                            option='decoration',
+                        ),
+                    ),
+                    self.curse_new_line(),
                 )
             )
-            # New line
-            ret.append(self.curse_new_line())
             # GPU TEMPERATURE
             try:
                 mean_temperature = sum(s['temperature'] for s in self.stats if s is not None) / len(self.stats)
@@ -238,11 +244,17 @@ class Plugin(GlancesPlugin):
                 msg = '{:13}'.format('temp mean:')
             else:
                 msg = '{:13}'.format('temperature:')
-            ret.append(self.curse_add_line(msg))
-            ret.append(
-                self.curse_add_line(
-                    mean_temperature_msg,
-                    self.get_views(item=gpu_stats[self.get_key()], key='temperature', option='decoration'),
+            ret.extend(
+                (
+                    self.curse_add_line(msg),
+                    self.curse_add_line(
+                        mean_temperature_msg,
+                        self.get_views(
+                            item=gpu_stats[self.get_key()],
+                            key='temperature',
+                            option='decoration',
+                        ),
+                    ),
                 )
             )
         else:
@@ -252,7 +264,7 @@ class Plugin(GlancesPlugin):
                 # New line
                 ret.append(self.curse_new_line())
                 # GPU ID + PROC + MEM + TEMPERATURE
-                id_msg = '{}'.format(gpu_stats['gpu_id'])
+                id_msg = f"{gpu_stats['gpu_id']}"
                 try:
                     proc_msg = '{:>3.0f}%'.format(gpu_stats['proc'])
                 except (ValueError, TypeError):
@@ -261,7 +273,7 @@ class Plugin(GlancesPlugin):
                     mem_msg = '{:>3.0f}%'.format(gpu_stats['mem'])
                 except (ValueError, TypeError):
                     mem_msg = '{:>4}'.format('N/A')
-                msg = '{}: {} mem: {}'.format(id_msg, proc_msg, mem_msg)
+                msg = f'{id_msg}: {proc_msg} mem: {mem_msg}'
                 ret.append(self.curse_add_line(msg))
 
         return ret
@@ -271,11 +283,7 @@ class Plugin(GlancesPlugin):
         stats = []
 
         for index, device_handle in enumerate(self.device_handles):
-            device_stats = dict()
-            # Dictionary key is the GPU_ID
-            device_stats['key'] = self.get_key()
-            # GPU id (for multiple GPU, start at 0)
-            device_stats['gpu_id'] = index
+            device_stats = {'key': self.get_key(), 'gpu_id': index}
             # GPU name
             device_stats['name'] = get_device_name(device_handle)
             # Memory consumption in % (not available on all GPU)
@@ -294,7 +302,7 @@ class Plugin(GlancesPlugin):
             try:
                 pynvml.nvmlShutdown()
             except Exception as e:
-                logger.debug("pynvml failed to shutdown correctly ({})".format(e))
+                logger.debug(f"pynvml failed to shutdown correctly ({e})")
 
         # Call the father exit method
         super(Plugin, self).exit()

@@ -54,39 +54,37 @@ class Export(GlancesExport):
             return None
 
         try:
-            es = Elasticsearch(hosts=['{}:{}'.format(self.host, self.port)])
+            es = Elasticsearch(hosts=[f'{self.host}:{self.port}'])
         except Exception as e:
-            logger.critical("Cannot connect to ElasticSearch server %s:%s (%s)" % (self.host, self.port, e))
+            logger.critical(
+                f"Cannot connect to ElasticSearch server {self.host}:{self.port} ({e})"
+            )
             sys.exit(2)
         else:
-            logger.info("Connected to the ElasticSearch server %s:%s" % (self.host, self.port))
+            logger.info(f"Connected to the ElasticSearch server {self.host}:{self.port}")
 
         return es
 
     def export(self, name, columns, points):
         """Write the points to the ES server."""
-        logger.debug("Export {} stats to ElasticSearch".format(name))
+        logger.debug(f"Export {name} stats to ElasticSearch")
 
         # Generate index name with the index field + current day
-        index = '{}-{}'.format(self.index, datetime.utcnow().strftime("%Y.%m.%d"))
+        index = f'{self.index}-{datetime.utcnow().strftime("%Y.%m.%d")}'
 
-        # Create DB input
-        # https://elasticsearch-py.readthedocs.io/en/master/helpers.html
-        actions = []
         dt_now = datetime.utcnow().isoformat('T')
         action = {
             "_index": index,
-            "_id": '{}.{}'.format(name, dt_now),
-            "_type": 'glances-{}'.format(name),
+            "_id": f'{name}.{dt_now}',
+            "_type": f'glances-{name}',
             "_source": {"plugin": name, "timestamp": dt_now},
         }
         action['_source'].update(zip(columns, [str(p) for p in points]))
-        actions.append(action)
-
-        logger.debug("Exporting the following object to elasticsearch: {}".format(action))
+        actions = [action]
+        logger.debug(f"Exporting the following object to elasticsearch: {action}")
 
         # Write input to the ES index
         try:
             helpers.bulk(self.client, actions)
         except Exception as e:
-            logger.error("Cannot export {} stats to ElasticSearch ({})".format(name, e))
+            logger.error(f"Cannot export {name} stats to ElasticSearch ({e})")

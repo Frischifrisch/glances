@@ -154,7 +154,11 @@ def global_message():
     # Compute the weight for each item in the tree
     current_thresholds = glances_thresholds.get()
     for i in tree:
-        i['weight'] = sum([current_thresholds[t].value() for t in i['thresholds'] if t in current_thresholds])
+        i['weight'] = sum(
+            current_thresholds[t].value()
+            for t in i['thresholds']
+            if t in current_thresholds
+        )
     themax = max(tree, key=lambda d: d['weight'])
     if themax['weight'] >= themax['thresholds_min']:
         # Check if the weight is > to the minimal threshold value
@@ -210,15 +214,14 @@ class Plugin(GlancesPlugin):
             # Duration
             if alert[1] > 0:
                 # If finished display duration
-                msg = ' ({})'.format(datetime.fromtimestamp(alert[1]) - datetime.fromtimestamp(alert[0]))
+                msg = f' ({datetime.fromtimestamp(alert[1]) - datetime.fromtimestamp(alert[0])})'
             else:
                 msg = ' (ongoing)'
-            ret.append(self.curse_add_line(msg))
-            ret.append(self.curse_add_line(" - "))
+            ret.extend((self.curse_add_line(msg), self.curse_add_line(" - ")))
             # Infos
             if alert[1] > 0:
                 # If finished do not display status
-                msg = '{} on {}'.format(alert[2], alert[3])
+                msg = f'{alert[2]} on {alert[3]}'
                 ret.append(self.curse_add_line(msg))
             else:
                 msg = str(alert[3])
@@ -232,7 +235,7 @@ class Plugin(GlancesPlugin):
             # Top processes
             top_process = ', '.join([p['name'] for p in alert[9]])
             if top_process != '':
-                msg = ': {}'.format(top_process)
+                msg = f': {top_process}'
                 ret.append(self.curse_add_line(msg))
 
         return ret

@@ -79,16 +79,14 @@ class GlancesClientBrowser(object):
 
     def __get_uri(self, server):
         """Return the URI for the given server dict."""
-        # Select the connection mode (with or without password)
-        if server['password'] != "":
-            if server['status'] == 'PROTECTED':
-                # Try with the preconfigure password (only if status is PROTECTED)
-                clear_password = self.password.get_password(server['name'])
-                if clear_password is not None:
-                    server['password'] = self.password.sha256_hash(clear_password)
-            return 'http://{}:{}@{}:{}'.format(server['username'], server['password'], server['ip'], server['port'])
-        else:
-            return 'http://{}:{}'.format(server['ip'], server['port'])
+        if server['password'] == "":
+            return f"http://{server['ip']}:{server['port']}"
+        if server['status'] == 'PROTECTED':
+            # Try with the preconfigure password (only if status is PROTECTED)
+            clear_password = self.password.get_password(server['name'])
+            if clear_password is not None:
+                server['password'] = self.password.sha256_hash(clear_password)
+        return f"http://{server['username']}:{server['password']}@{server['ip']}:{server['port']}"
 
     def __update_stats(self, server):
         """Update stats for the given server (picked from the server list)"""
@@ -103,7 +101,7 @@ class GlancesClientBrowser(object):
         try:
             s = ServerProxy(uri, transport=t)
         except Exception as e:
-            logger.warning("Client browser couldn't create socket {}: {}".format(uri, e))
+            logger.warning(f"Client browser couldn't create socket {uri}: {e}")
         else:
             # Mandatory stats
             try:
@@ -115,7 +113,7 @@ class GlancesClientBrowser(object):
                 # OS (Human Readable name)
                 server['hr_name'] = json.loads(s.getSystem())['hr_name']
             except (socket.error, Fault, KeyError) as e:
-                logger.debug("Error while grabbing stats form {}: {}".format(uri, e))
+                logger.debug(f"Error while grabbing stats form {uri}: {e}")
                 server['status'] = 'OFFLINE'
             except ProtocolError as e:
                 if e.errcode == 401:
@@ -125,7 +123,7 @@ class GlancesClientBrowser(object):
                     server['status'] = 'PROTECTED'
                 else:
                     server['status'] = 'OFFLINE'
-                logger.debug("Cannot grab stats from {} ({} {})".format(uri, e.errcode, e.errmsg))
+                logger.debug(f"Cannot grab stats from {uri} ({e.errcode} {e.errmsg})")
             else:
                 # Status
                 server['status'] = 'ONLINE'
@@ -136,18 +134,20 @@ class GlancesClientBrowser(object):
                     load_min5 = json.loads(s.getLoad())['min5']
                     server['load_min5'] = '{:.2f}'.format(load_min5)
                 except Exception as e:
-                    logger.warning("Error while grabbing stats form {}: {}".format(uri, e))
+                    logger.warning(f"Error while grabbing stats form {uri}: {e}")
 
         return server
 
     def __display_server(self, server):
         """Connect and display the given server"""
         # Display the Glances client for the selected server
-        logger.debug("Selected server {}".format(server))
+        logger.debug(f"Selected server {server}")
 
         # Connection can take time
         # Display a popup
-        self.screen.display_popup('Connect to {}:{}'.format(server['name'], server['port']), duration=1)
+        self.screen.display_popup(
+            f"Connect to {server['name']}:{server['port']}", duration=1
+        )
 
         # A password is needed to access to the server's stats
         if server['password'] is None:
@@ -157,14 +157,14 @@ class GlancesClientBrowser(object):
                 # Else, the password should be enter by the user
                 # Display a popup to enter password
                 clear_password = self.screen.display_popup(
-                    'Password needed for {}: '.format(server['name']), is_input=True
+                    f"Password needed for {server['name']}: ", is_input=True
                 )
             # Store the password for the selected server
             if clear_password is not None:
                 self.set_in_selected('password', self.password.sha256_hash(clear_password))
 
         # Display the Glance client on the selected server
-        logger.info("Connect Glances client to the {} server".format(server['key']))
+        logger.info(f"Connect Glances client to the {server['key']} server")
 
         # Init the client
         args_server = self.args
@@ -179,7 +179,7 @@ class GlancesClientBrowser(object):
         # Test if client and server are in the same major version
         if not client.login():
             self.screen.display_popup(
-                "Sorry, cannot connect to '{}'\n" "See '{}' for more details".format(server['name'], LOG_FILENAME)
+                f"Sorry, cannot connect to '{server['name']}'\nSee '{LOG_FILENAME}' for more details"
             )
 
             # Set the ONLINE status for the selected server
@@ -190,7 +190,7 @@ class GlancesClientBrowser(object):
             connection_type = client.serve_forever()
 
             try:
-                logger.debug("Disconnect Glances client from the {} server".format(server['key']))
+                logger.debug(f"Disconnect Glances client from the {server['key']} server")
             except IndexError:
                 # Server did not exist anymore
                 pass
@@ -212,7 +212,9 @@ class GlancesClientBrowser(object):
         # For each server in the list, grab elementary stats (CPU, LOAD, MEM, OS...)
         thread_list = {}
         while not self.screen.is_end:
-            logger.debug("Iter through the following server list: {}".format(self.get_servers_list()))
+            logger.debug(
+                f"Iter through the following server list: {self.get_servers_list()}"
+            )
             for v in self.get_servers_list():
                 key = v["key"]
                 thread = thread_list.get(key, None)

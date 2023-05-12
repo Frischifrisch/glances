@@ -62,10 +62,6 @@ class Plugin(GlancesPlugin):
             # Grab the stats
             stats = self.irq.get()
 
-        elif self.input_method == 'snmp':
-            # not available
-            pass
-
         # Get the TOP 5 (by rate/s)
         stats = sorted(stats, key=operator.itemgetter('irq_rate'), reverse=True)[:5]
 
@@ -102,10 +98,12 @@ class Plugin(GlancesPlugin):
         for i in self.stats:
             ret.append(self.curse_new_line())
             msg = '{:{width}}'.format(i['irq_line'][:name_max_width], width=name_max_width)
-            ret.append(self.curse_add_line(msg))
-            msg = '{:>9}'.format(str(i['irq_rate']))
-            ret.append(self.curse_add_line(msg))
-
+            ret.extend(
+                (
+                    self.curse_add_line(msg),
+                    self.curse_add_line('{:>9}'.format(str(i['irq_rate']))),
+                )
+            )
         return ret
 
 
@@ -155,7 +153,7 @@ class GlancesIRQ(object):
         irq_line = splitted_line[0].replace(':', '')
         if irq_line.isdigit():
             # If the first column is a digit, use the alias (last column)
-            irq_line += '_{}'.format(splitted_line[-1])
+            irq_line += f'_{splitted_line[-1]}'
         return irq_line
 
     def __sum(self, line):
@@ -188,7 +186,7 @@ class GlancesIRQ(object):
                 # Read the header
                 self.__header(irq_proc.readline())
                 # Read the rest of the lines (one line per IRQ)
-                for line in irq_proc.readlines():
+                for line in irq_proc:
                     irq_line = self.__humanname(line)
                     current_irqs = self.__sum(line)
                     irq_rate = int(

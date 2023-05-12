@@ -20,6 +20,7 @@
 
 """Init the Glances software."""
 
+
 # Import system libs
 import locale
 import platform
@@ -60,7 +61,7 @@ if sys.version_info < (2, 7) or (3, 0) <= sys.version_info < (3, 4):
 
 # Check psutil version
 psutil_min_version = (5, 3, 0)
-psutil_version_info = tuple([int(num) for num in psutil_version.split('.')])
+psutil_version_info = tuple(int(num) for num in psutil_version.split('.'))
 if psutil_version_info < psutil_min_version:
     print('psutil 5.3.0 or higher is needed. Glances cannot start.')
     sys.exit(1)
@@ -114,19 +115,19 @@ def start(config, args):
         from glances.webserver import GlancesWebServer as GlancesMode
 
     # Init the mode
-    logger.info("Start {} mode".format(GlancesMode.__name__))
+    logger.info(f"Start {GlancesMode.__name__} mode")
     mode = GlancesMode(config=config, args=args)
 
     # Start the main loop
-    logger.debug("Glances started in {} seconds".format(start_duration.get()))
+    logger.debug(f"Glances started in {start_duration.get()} seconds")
     if args.stop_after:
-        logger.info('Glances will be stopped in ~{} seconds'.format(args.stop_after * args.time * args.memory_leak * 2))
+        logger.info(
+            f'Glances will be stopped in ~{args.stop_after * args.time * args.memory_leak * 2} seconds'
+        )
 
     if args.memory_leak:
         print(
-            'Memory leak detection, please wait ~{} seconds...'.format(
-                args.stop_after * args.time * args.memory_leak * 2
-            )
+            f'Memory leak detection, please wait ~{args.stop_after * args.time * args.memory_leak * 2} seconds...'
         )
         # First run without dump to fill the memory
         mode.serve_n(args.stop_after)
@@ -143,7 +144,7 @@ def start(config, args):
     if args.memory_leak:
         snapshot_end = tracemalloc.take_snapshot()
         snapshot_diff = snapshot_end.compare_to(snapshot_begin, 'filename')
-        memory_leak = sum([s.size_diff for s in snapshot_diff])
+        memory_leak = sum(s.size_diff for s in snapshot_diff)
         print("Memory comsumption: {0:.1f}KB (see log for details)".format(memory_leak / 1000))
         logger.info("Memory consumption (top 5):")
         for stat in snapshot_diff[:5]:
@@ -170,11 +171,9 @@ def main():
     signal.signal(signal.SIGINT, __signal_handler)
 
     # Log Glances and psutil version
-    logger.info('Start Glances {}'.format(__version__))
+    logger.info(f'Start Glances {__version__}')
     logger.info(
-        '{} {} ({}) and psutil {} detected'.format(
-            platform.python_implementation(), platform.python_version(), sys.executable, psutil_version
-        )
+        f'{platform.python_implementation()} {platform.python_version()} ({sys.executable}) and psutil {psutil_version} detected'
     )
 
     # Share global var

@@ -103,7 +103,7 @@ Examples of use:
 
     def init_args(self):
         """Init all the command line arguments."""
-        version = 'Glances v{} with PsUtil v{}\nLog file: {}'.format(__version__, psutil_version, LOG_FILENAME)
+        version = f'Glances v{__version__} with PsUtil v{psutil_version}\nLog file: {LOG_FILENAME}'
         parser = argparse.ArgumentParser(
             prog='glances',
             conflict_handler='resolve',
@@ -241,7 +241,7 @@ Examples of use:
             '--sort-processes',
             dest='sort_processes_key',
             choices=sort_processes_key_list,
-            help='Sort processes by: {}'.format(', '.join(sort_processes_key_list)),
+            help=f"Sort processes by: {', '.join(sort_processes_key_list)}",
         )
         # Display processes list by program name and not by thread
         parser.add_argument(
@@ -300,7 +300,7 @@ Examples of use:
             default=None,
             type=int,
             dest='port',
-            help='define the client/server TCP port [default: {}]'.format(self.server_port),
+            help=f'define the client/server TCP port [default: {self.server_port}]',
         )
         parser.add_argument(
             '-B',
@@ -340,7 +340,7 @@ Examples of use:
             default=self.DEFAULT_REFRESH_TIME,
             type=float,
             dest='time',
-            help='set minimum refresh rate in seconds [default: {} sec]'.format(self.DEFAULT_REFRESH_TIME),
+            help=f'set minimum refresh rate in seconds [default: {self.DEFAULT_REFRESH_TIME} sec]',
         )
         parser.add_argument(
             '-w',
@@ -355,7 +355,7 @@ Examples of use:
             default=self.cached_time,
             type=int,
             dest='cached_time',
-            help='set the server cache time [default: {} sec]'.format(self.cached_time),
+            help=f'set the server cache time [default: {self.cached_time} sec]',
         )
         parser.add_argument(
             '--stop-after',
@@ -544,14 +544,14 @@ Examples of use:
             global_refresh = self.config.get_float_value('global', 'refresh', default=self.DEFAULT_REFRESH_TIME)
         if args.time == self.DEFAULT_REFRESH_TIME:
             args.time = global_refresh
-        logger.debug('Global refresh rate is set to {} seconds'.format(args.time))
+        logger.debug(f'Global refresh rate is set to {args.time} seconds')
 
         # Plugins disable/enable
         # Allow users to disable plugins from the glances.conf (issue #1378)
         for s in self.config.sections():
             if self.config.has_section(s) and (self.config.get_bool_value(s, 'disable', False)):
                 disable(args, s)
-                logger.debug('{} disabled by the configuration file'.format(s))
+                logger.debug(f'{s} disabled by the configuration file')
         # The configuration key can be overwrite from the command line
         if args.disable_plugin is not None:
             for p in args.disable_plugin.split(','):
@@ -563,14 +563,10 @@ Examples of use:
         # Exporters activation
         if args.export is not None:
             for p in args.export.split(','):
-                setattr(args, 'export_' + p, True)
+                setattr(args, f'export_{p}', True)
 
-        # Client/server Port
         if args.port is None:
-            if args.webserver:
-                args.port = self.web_server_port
-            else:
-                args.port = self.server_port
+            args.port = self.web_server_port if args.webserver else self.server_port
         # Port in the -c URI #996
         if args.client is not None:
             args.client, args.port = (
@@ -597,30 +593,24 @@ Examples of use:
             elif args.client:
                 args.username = self.__get_username(description='Enter the Glances server username: ')
         else:
-            if args.username_used:
-                # A username has been set using the -u option ?
-                args.username = args.username_used
-            else:
-                # Default user name is 'glances'
-                args.username = self.username
-
+            args.username = args.username_used if args.username_used else self.username
         if args.password_prompt or args.username_used:
             # Interactive or file password
             if args.server:
                 args.password = self.__get_password(
-                    description='Define the Glances server password ({} username): '.format(args.username),
+                    description=f'Define the Glances server password ({args.username} username): ',
                     confirm=True,
                     username=args.username,
                 )
             elif args.webserver:
                 args.password = self.__get_password(
-                    description='Define the Glances webserver password ({} username): '.format(args.username),
+                    description=f'Define the Glances webserver password ({args.username} username): ',
                     confirm=True,
                     username=args.username,
                 )
             elif args.client:
                 args.password = self.__get_password(
-                    description='Enter the Glances server password ({} username): '.format(args.username),
+                    description=f'Enter the Glances server password ({args.username} username): ',
                     clear=True,
                     username=args.username,
                 )
@@ -677,7 +667,7 @@ Examples of use:
             logger.info("On Windows OS, export disable the Web interface")
             self.args.quiet = True
             self.args.webserver = False
-        elif not (self.is_standalone() or self.is_client()) and export_tag:
+        elif not self.is_standalone() and not self.is_client() and export_tag:
             logger.critical("Export is only available in standalone or client mode")
             sys.exit(2)
 
@@ -691,20 +681,25 @@ Examples of use:
             disable(self.args, 'hddtemp')
             logger.debug("Sensors and HDDTemp are disabled")
 
-        if getattr(self.args, 'trace_malloc', True) and not (PY3 or self.is_standalone()):
+        if (
+            getattr(self.args, 'trace_malloc', True)
+            and not PY3
+            and not self.is_standalone()
+        ):
             logger.critical("Option --trace-malloc is only available with Python 3 and terminal mode")
             sys.exit(2)
 
-        if getattr(self.args, 'memory_leak', True) and not (PY3 or self.is_standalone()):
-            logger.critical("Option --memory-leak is only available with Python 3 and terminal mode")
-            sys.exit(2)
-        elif getattr(self.args, 'memory_leak', True) and (PY3 or self.is_standalone()):
-            logger.info('Memory leak detection enabled')
-            self.args.quiet = True
-            if not self.args.stop_after:
-                self.args.stop_after = 60
-            self.args.time = 1
-            self.args.disable_history = True
+        if getattr(self.args, 'memory_leak', True):
+            if not (PY3 or self.is_standalone()):
+                logger.critical("Option --memory-leak is only available with Python 3 and terminal mode")
+                sys.exit(2)
+            elif PY3 or self.is_standalone():
+                logger.info('Memory leak detection enabled')
+                self.args.quiet = True
+                if not self.args.stop_after:
+                    self.args.stop_after = 60
+                self.args.time = 1
+                self.args.disable_history = True
 
         # Let the plugins known the Glances mode
         self.args.is_standalone = self.is_standalone()

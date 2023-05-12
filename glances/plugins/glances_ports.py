@@ -19,6 +19,7 @@
 
 """Ports scanner plugin."""
 
+
 import os
 import subprocess
 import threading
@@ -40,7 +41,9 @@ try:
     requests_tag = True
 except ImportError as e:
     requests_tag = False
-    logger.warning("Missing Python Lib ({}), Ports plugin is limited to port scanning".format(e))
+    logger.warning(
+        f"Missing Python Lib ({e}), Ports plugin is limited to port scanning"
+    )
 
 
 class Plugin(GlancesPlugin):
@@ -79,10 +82,7 @@ class Plugin(GlancesPlugin):
             # Only refresh:
             # * if there is not other scanning thread
             # * every refresh seconds (define in the configuration file)
-            if self._thread is None:
-                thread_is_running = False
-            else:
-                thread_is_running = self._thread.is_alive()
+            thread_is_running = False if self._thread is None else self._thread.is_alive()
             if not thread_is_running:
                 # Run ports scanner
                 self._thread = ThreadScanner(self.stats)
@@ -92,10 +92,6 @@ class Plugin(GlancesPlugin):
                 #     self.timer_ports = Timer(self.stats[0]['refresh'])
                 # else:
                 #     self.timer_ports = Timer(0)
-        else:
-            # Not available in SNMP mode
-            pass
-
         return self.stats
 
     def get_key(self):
@@ -175,24 +171,40 @@ class Plugin(GlancesPlugin):
                     # Convert second to ms
                     status = '{0:.0f}ms'.format(p['status'] * 1000.0)
 
-                msg = '{:{width}}'.format(p['description'][0:name_max_width], width=name_max_width)
+                msg = '{:{width}}'.format(
+                    p['description'][:name_max_width], width=name_max_width
+                )
                 ret.append(self.curse_add_line(msg))
                 msg = '{:>9}'.format(status)
-                ret.append(self.curse_add_line(msg, self.get_ports_alert(p, header=p['indice'] + '_rtt')))
-                ret.append(self.curse_new_line())
+                ret.extend(
+                    (
+                        self.curse_add_line(
+                            msg,
+                            self.get_ports_alert(p, header=p['indice'] + '_rtt'),
+                        ),
+                        self.curse_new_line(),
+                    )
+                )
             elif 'url' in p:
-                msg = '{:{width}}'.format(p['description'][0:name_max_width], width=name_max_width)
+                msg = '{:{width}}'.format(
+                    p['description'][:name_max_width], width=name_max_width
+                )
                 ret.append(self.curse_add_line(msg))
                 if isinstance(p['status'], numbers.Number):
-                    status = 'Code {}'.format(p['status'])
+                    status = f"Code {p['status']}"
                 elif p['status'] is None:
                     status = 'Scanning'
                 else:
                     status = p['status']
                 msg = '{:>9}'.format(status)
-                ret.append(self.curse_add_line(msg, self.get_web_alert(p, header=p['indice'] + '_rtt')))
-                ret.append(self.curse_new_line())
-
+                ret.extend(
+                    (
+                        self.curse_add_line(
+                            msg, self.get_web_alert(p, header=p['indice'] + '_rtt')
+                        ),
+                        self.curse_new_line(),
+                    )
+                )
         # Delete the last empty line
         try:
             ret.pop()
@@ -211,7 +223,7 @@ class ThreadScanner(threading.Thread):
 
     def __init__(self, stats):
         """Init the class."""
-        logger.debug("ports plugin - Create thread for scan list {}".format(stats))
+        logger.debug(f"ports plugin - Create thread for scan list {stats}")
         super(ThreadScanner, self).__init__()
         # Event needed to stop properly the thread
         self._stopper = threading.Event()
@@ -251,7 +263,7 @@ class ThreadScanner(threading.Thread):
 
     def stop(self, timeout=None):
         """Stop the thread."""
-        logger.debug("ports plugin - Close thread for scan list {}".format(self._stats))
+        logger.debug(f"ports plugin - Close thread for scan list {self._stats}")
         self._stopper.set()
 
     def stopped(self):
@@ -290,7 +302,9 @@ class ThreadScanner(threading.Thread):
         try:
             ip = socket.gethostbyname(hostname)
         except Exception as e:
-            logger.debug("{}: Cannot convert {} to IP address ({})".format(self.plugin_name, hostname, e))
+            logger.debug(
+                f"{self.plugin_name}: Cannot convert {hostname} to IP address ({e})"
+            )
         return ip
 
     def _port_scan_icmp(self, port):
@@ -320,22 +334,18 @@ class ThreadScanner(threading.Thread):
             str(self._resolv_name(port['timeout'])),
             self._resolv_name(port['host']),
         ]
-        fnull = open(os.devnull, 'w')
-
-        try:
-            counter = Counter()
-            ret = subprocess.check_call(cmd, stdout=fnull, stderr=fnull, close_fds=True)
-            if ret == 0:
-                port['status'] = counter.get()
-            else:
+        with open(os.devnull, 'w') as fnull:
+            try:
+                counter = Counter()
+                ret = subprocess.check_call(cmd, stdout=fnull, stderr=fnull, close_fds=True)
+                port['status'] = counter.get() if ret == 0 else False
+            except subprocess.CalledProcessError:
+                # Correct issue #1084: No Offline status for timed-out ports
                 port['status'] = False
-        except subprocess.CalledProcessError:
-            # Correct issue #1084: No Offline status for timed-out ports
-            port['status'] = False
-        except Exception as e:
-            logger.debug("{}: Error while pinging host {} ({})".format(self.plugin_name, port['host'], e))
-
-        fnull.close()
+            except Exception as e:
+                logger.debug(
+                    f"{self.plugin_name}: Error while pinging host {port['host']} ({e})"
+                )
 
         return ret
 
@@ -348,7 +358,7 @@ class ThreadScanner(threading.Thread):
             socket.setdefaulttimeout(port['timeout'])
             _socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         except Exception as e:
-            logger.debug("{}: Error while creating scanning socket ({})".format(self.plugin_name, e))
+            logger.debug(f"{self.plugin_name}: Error while creating scanning socket ({e})")
 
         # Scan port
         ip = self._resolv_name(port['host'])
@@ -356,12 +366,9 @@ class ThreadScanner(threading.Thread):
         try:
             ret = _socket.connect_ex((ip, int(port['port'])))
         except Exception as e:
-            logger.debug("{}: Error while scanning port {} ({})".format(self.plugin_name, port, e))
+            logger.debug(f"{self.plugin_name}: Error while scanning port {port} ({e})")
         else:
-            if ret == 0:
-                port['status'] = counter.get()
-            else:
-                port['status'] = False
+            port['status'] = counter.get() if ret == 0 else False
         finally:
             _socket.close()
 

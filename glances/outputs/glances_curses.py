@@ -195,11 +195,11 @@ class _GlancesCurses(object):
         if config is not None and config.has_section('outputs'):
             logger.debug('Read the outputs section in the configuration file')
             self.theme['name'] = config.get_value('outputs', 'curse_theme', default='black')
-            logger.debug('Theme for the curse interface: {}'.format(self.theme['name']))
+            logger.debug(f"Theme for the curse interface: {self.theme['name']}")
 
     def is_theme(self, name):
         """Return True if the theme *name* should be used."""
-        return getattr(self.args, 'theme_' + name) or self.theme['name'] == name
+        return getattr(self.args, f'theme_{name}') or self.theme['name'] == name
 
     def _init_history(self):
         """Init the history option."""
@@ -222,11 +222,11 @@ class _GlancesCurses(object):
         try:
             if hasattr(curses, 'start_color'):
                 curses.start_color()
-                logger.debug('Curses interface compatible with {} colors'.format(curses.COLORS))
+                logger.debug(f'Curses interface compatible with {curses.COLORS} colors')
             if hasattr(curses, 'use_default_colors'):
                 curses.use_default_colors()
         except Exception as e:
-            logger.warning('Error initializing terminal color ({})'.format(e))
+            logger.warning(f'Error initializing terminal color ({e})')
 
         # Init colors
         if self.args.disable_bold:
@@ -348,9 +348,7 @@ class _GlancesCurses(object):
                 pass
 
     def get_key(self, window):
-        # @TODO: Check issue #163
-        ret = window.getch()
-        return ret
+        return window.getch()
 
     def __catch_key(self, return_to_browser=False):
         # Catch the pressed key
@@ -359,7 +357,7 @@ class _GlancesCurses(object):
             return -1
 
         # Actions (available in the global hotkey dict)...
-        logger.debug("Keypressed (code: {})".format(self.pressedkey))
+        logger.debug(f"Keypressed (code: {self.pressedkey})")
         for hotkey in self._hotkeys:
             if self.pressedkey == ord(hotkey) and 'switch' in self._hotkeys[hotkey]:
                 # Get the option name
@@ -449,55 +447,55 @@ class _GlancesCurses(object):
             # ">" (right arrow) navigation through process sort
             next_sort = (self.loop_position() + 1) % len(self._sort_loop)
             glances_processes.set_sort_key(self._sort_loop[next_sort], False)
-        elif self.pressedkey == curses.KEY_UP or self.pressedkey == 65:
+        elif self.pressedkey in [curses.KEY_UP, 65]:
             # 'UP' > Up in the server list
             if self.args.cursor_position > 0:
                 self.args.cursor_position -= 1
-        elif self.pressedkey == curses.KEY_DOWN or self.pressedkey == 66:
+        elif self.pressedkey in [curses.KEY_DOWN, 66]:
             # 'DOWN' > Down in the server list
             # if self.args.cursor_position < glances_processes.max_processes - 2:
             if self.args.cursor_position < glances_processes.processes_count:
                 self.args.cursor_position += 1
-        elif self.pressedkey == ord('\x1b') or self.pressedkey == ord('q'):
+        elif self.pressedkey in [ord('\x1b'), ord('q')]:
             # 'ESC'|'q' > Quit
             if return_to_browser:
                 logger.info("Stop Glances client and return to the browser")
             else:
-                logger.info("Stop Glances (keypressed: {})".format(self.pressedkey))
-        elif self.pressedkey == curses.KEY_F5:
-            # "F5" manual refresh requested
-            pass
-
+                logger.info(f"Stop Glances (keypressed: {self.pressedkey})")
         # Return the key code
         return self.pressedkey
 
     def loop_position(self):
         """Return the current sort in the loop"""
-        for i, v in enumerate(self._sort_loop):
-            if v == glances_processes.sort_key:
-                return i
-        return 0
+        return next(
+            (
+                i
+                for i, v in enumerate(self._sort_loop)
+                if v == glances_processes.sort_key
+            ),
+            0,
+        )
 
     def disable_top(self):
         """Disable the top panel"""
         for p in ['quicklook', 'cpu', 'gpu', 'mem', 'memswap', 'load']:
-            setattr(self.args, 'disable_' + p, True)
+            setattr(self.args, f'disable_{p}', True)
 
     def enable_top(self):
         """Enable the top panel"""
         for p in ['quicklook', 'cpu', 'gpu', 'mem', 'memswap', 'load']:
-            setattr(self.args, 'disable_' + p, False)
+            setattr(self.args, f'disable_{p}', False)
 
     def disable_fullquicklook(self):
         """Disable the full quicklook mode"""
         for p in ['quicklook', 'cpu', 'gpu', 'mem', 'memswap']:
-            setattr(self.args, 'disable_' + p, False)
+            setattr(self.args, f'disable_{p}', False)
 
     def enable_fullquicklook(self):
         """Disable the full quicklook mode"""
         self.args.disable_quicklook = False
         for p in ['cpu', 'gpu', 'mem', 'memswap']:
-            setattr(self.args, 'disable_' + p, True)
+            setattr(self.args, f'disable_{p}', True)
 
     def end(self):
         """Shutdown the curses window."""
@@ -568,7 +566,7 @@ class _GlancesCurses(object):
         ret = {}
 
         for p in stats.getPluginsList(enable=False):
-            if p == 'quicklook' or p == 'processlist':
+            if p in ['quicklook', 'processlist']:
                 # processlist is done later
                 # because we need to know how many processes could be displayed
                 continue
@@ -625,10 +623,9 @@ class _GlancesCurses(object):
                 max_processes_displayed -= 4
         except AttributeError:
             pass
-        if max_processes_displayed < 0:
-            max_processes_displayed = 0
+        max_processes_displayed = max(max_processes_displayed, 0)
         if glances_processes.max_processes is None or glances_processes.max_processes != max_processes_displayed:
-            logger.debug("Set number of displayed processes to {}".format(max_processes_displayed))
+            logger.debug(f"Set number of displayed processes to {max_processes_displayed}")
             glances_processes.max_processes = max_processes_displayed
 
         # Get the processlist
@@ -689,7 +686,7 @@ class _GlancesCurses(object):
                 input_value=glances_processes.process_filter_input,
             )
             glances_processes.process_filter = new_filter
-        elif self.edit_filter and cs_status is not None:
+        elif self.edit_filter:
             self.display_popup('Process filter only available in standalone mode')
         self.edit_filter = False
 
@@ -698,13 +695,13 @@ class _GlancesCurses(object):
         if self.kill_process and cs_status is None:
             logger.info(stats.get_plugin('processlist').get_raw()[self.args.cursor_position])
             self.kill(stats.get_plugin('processlist').get_raw()[self.args.cursor_position])
-        elif self.kill_process and cs_status is not None:
+        elif self.kill_process:
             self.display_popup('Kill process only available for local processes')
         self.kill_process = False
 
         # Display graph generation popup
         if self.args.generate_graph:
-            self.display_popup('Generate graph in {}'.format(self.args.export_graph_path))
+            self.display_popup(f'Generate graph in {self.args.export_graph_path}')
 
         return True
 
@@ -714,7 +711,7 @@ class _GlancesCurses(object):
         :param process
         :return: None
         """
-        logger.debug("Selected process to kill: {}".format(process))
+        logger.debug(f"Selected process to kill: {process}")
 
         if 'childrens' in process:
             pid_to_kill = process['childrens']
@@ -722,10 +719,7 @@ class _GlancesCurses(object):
             pid_to_kill = [process['pid']]
 
         confirm = self.display_popup(
-            'Kill process: {} (pid: {}) ?\n\nConfirm ([y]es/[n]o): '.format(
-                process['name'],
-                ', '.join(map(str, pid_to_kill)),
-            ),
+            f"Kill process: {process['name']} (pid: {', '.join(map(str, pid_to_kill))}) ?\n\nConfirm ([y]es/[n]o): ",
             popup_type='yesno',
         )
 
@@ -734,9 +728,11 @@ class _GlancesCurses(object):
                 try:
                     ret_kill = glances_processes.kill(pid)
                 except Exception as e:
-                    logger.error('Can not kill process {} ({})'.format(pid, e))
+                    logger.error(f'Can not kill process {pid} ({e})')
                 else:
-                    logger.info('Kill signal has been sent to process {} (return code: {})'.format(pid, ret_kill))
+                    logger.info(
+                        f'Kill signal has been sent to process {pid} (return code: {ret_kill})'
+                    )
 
     def __display_header(self, stat_display):
         """Display the firsts lines (header) in the Curses interface.
@@ -747,10 +743,11 @@ class _GlancesCurses(object):
         # First line
         self.new_line()
         self.space_between_column = 0
-        l_uptime = 1
-        for i in ['system', 'ip', 'uptime']:
-            if i in stat_display:
-                l_uptime += self.get_stats_display_width(stat_display[i])
+        l_uptime = 1 + sum(
+            self.get_stats_display_width(stat_display[i])
+            for i in ['system', 'ip', 'uptime']
+            if i in stat_display
+        )
         self.display_plugin(stat_display["system"], display_optional=(self.term_window.getmaxyx()[1] >= l_uptime))
         self.space_between_column = 3
         if 'ip' in stat_display:
@@ -777,19 +774,20 @@ class _GlancesCurses(object):
         # Init quicklook
         stat_display['quicklook'] = {'msgdict': []}
 
-        # Dict for plugins width
-        plugin_widths = {}
-        for p in self._top:
-            plugin_widths[p] = (
-                self.get_stats_display_width(stat_display.get(p, 0)) if hasattr(self.args, 'disable_' + p) else 0
-            )
-
+        plugin_widths = {
+            p: self.get_stats_display_width(stat_display.get(p, 0))
+            if hasattr(self.args, f'disable_{p}')
+            else 0
+            for p in self._top
+        }
         # Width of all plugins
         stats_width = sum(itervalues(plugin_widths))
 
         # Number of plugin but quicklook
         stats_number = sum(
-            [int(stat_display[p]['msgdict'] != []) for p in self._top if not getattr(self.args, 'disable_' + p)]
+            int(stat_display[p]['msgdict'] != [])
+            for p in self._top
+            if not getattr(self.args, f'disable_{p}')
         )
 
         if not self.args.disable_quicklook:
@@ -808,7 +806,7 @@ class _GlancesCurses(object):
                     max_width=quicklook_width, args=self.args
                 )
             except AttributeError as e:
-                logger.debug("Quicklook plugin not available (%s)" % e)
+                logger.debug(f"Quicklook plugin not available ({e})")
             else:
                 plugin_widths['quicklook'] = self.get_stats_display_width(stat_display["quicklook"])
                 stats_width = sum(itervalues(plugin_widths)) + 1
@@ -816,11 +814,7 @@ class _GlancesCurses(object):
             self.display_plugin(stat_display["quicklook"])
             self.new_column()
 
-        # Compute spaces between plugins
-        # Note: Only one space between Quicklook and others
-        plugin_display_optional = {}
-        for p in self._top:
-            plugin_display_optional[p] = True
+        plugin_display_optional = {p: True for p in self._top}
         if stats_number > 1:
             self.space_between_column = max(1, int((self.term_window.getmaxyx()[1] - stats_width) / (stats_number - 1)))
             for p in ['mem', 'cpu']:
@@ -828,8 +822,10 @@ class _GlancesCurses(object):
                 if self.space_between_column < 3:
                     plugin_display_optional[p] = False
                     plugin_widths[p] = (
-                        self.get_stats_display_width(stat_display[p], without_option=True)
-                        if hasattr(self.args, 'disable_' + p)
+                        self.get_stats_display_width(
+                            stat_display[p], without_option=True
+                        )
+                        if hasattr(self.args, f'disable_{p}')
                         else 0
                     )
                     stats_width = sum(itervalues(plugin_widths)) + 1
@@ -863,7 +859,10 @@ class _GlancesCurses(object):
             return
 
         for p in self._left_sidebar:
-            if (hasattr(self.args, 'enable_' + p) or hasattr(self.args, 'disable_' + p)) and p in stat_display:
+            if (
+                hasattr(self.args, f'enable_{p}')
+                or hasattr(self.args, f'disable_{p}')
+            ) and p in stat_display:
                 self.new_line()
                 self.display_plugin(stat_display[p])
 
@@ -882,7 +881,10 @@ class _GlancesCurses(object):
         # Display right sidebar
         self.new_column()
         for p in self._right_sidebar:
-            if (hasattr(self.args, 'enable_' + p) or hasattr(self.args, 'disable_' + p)) and p in stat_display:
+            if (
+                hasattr(self.args, f'enable_{p}')
+                or hasattr(self.args, f'disable_{p}')
+            ) and p in stat_display:
                 if p not in p:
                     # Catch for issue #1470
                     continue
@@ -974,7 +976,7 @@ class _GlancesCurses(object):
             self.set_cursor(0)
             # self.term_window.keypad(0)
             if textbox.gather() != '':
-                logger.debug("User enters the following string: %s" % textbox.gather())
+                logger.debug(f"User enters the following string: {textbox.gather()}")
                 return textbox.gather()[:-1]
             else:
                 logger.debug("User centers an empty string")
@@ -1140,7 +1142,7 @@ class _GlancesCurses(object):
         while not countdown.finished() and not isexitkey:
             # Getkey
             pressedkey = self.__catch_key(return_to_browser=return_to_browser)
-            isexitkey = pressedkey == ord('\x1b') or pressedkey == ord('q')
+            isexitkey = pressedkey in [ord('\x1b'), ord('q')]
 
             if pressedkey == curses.KEY_F5:
                 # Were asked to refresh
@@ -1149,9 +1151,7 @@ class _GlancesCurses(object):
             if isexitkey and self.args.help_tag:
                 # Quit from help should return to main screen, not exit #1874
                 self.args.help_tag = not self.args.help_tag
-                isexitkey = False
-                return isexitkey
-
+                return False
             if not isexitkey and pressedkey > -1:
                 # Redraw display
                 self.flush(stats, cs_status=cs_status)
@@ -1191,7 +1191,7 @@ class _GlancesCurses(object):
                     )
                 )
         except Exception as e:
-            logger.debug('ERROR: Can not compute plugin width ({})'.format(e))
+            logger.debug(f'ERROR: Can not compute plugin width ({e})')
             return 0
         else:
             return c
@@ -1204,7 +1204,7 @@ class _GlancesCurses(object):
         try:
             c = [i['msg'] for i in curse_msg['msgdict']].count('\n')
         except Exception as e:
-            logger.debug('ERROR: Can not compute plugin height ({})'.format(e))
+            logger.debug(f'ERROR: Can not compute plugin height ({e})')
             return 0
         else:
             return c + 1
@@ -1231,9 +1231,7 @@ class GlancesTextbox(Textbox, object):
     def do_command(self, ch):
         if ch == 10:  # Enter
             return 0
-        if ch == 127:  # Back
-            return 8
-        return super(GlancesTextbox, self).do_command(ch)
+        return 8 if ch == 127 else super(GlancesTextbox, self).do_command(ch)
 
 
 class GlancesTextboxYesNo(Textbox, object):
