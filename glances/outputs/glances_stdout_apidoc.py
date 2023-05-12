@@ -48,7 +48,9 @@ def indent_stat(stat, indent='    '):
     # Indent stats to pretty print it
     if isinstance(stat, list) and len(stat) > 1 and isinstance(stat[0], dict):
         # Only display two first items
-        return indent + pformat(stat[0:2]).replace('\n', '\n' + indent).replace("'", '"')
+        return indent + pformat(stat[:2]).replace('\n', '\n' + indent).replace(
+            "'", '"'
+        )
     else:
         return indent + pformat(stat).replace('\n', '\n' + indent).replace("'", '"')
 
@@ -63,7 +65,7 @@ def print_api_status():
     print('')
     print('Get the Rest API status::')
     print('')
-    print('    # curl -I {}/status'.format(API_URL))
+    print(f'    # curl -I {API_URL}/status')
     print(indent_stat('HTTP/1.0 200 OK'))
     print('')
 
@@ -75,20 +77,20 @@ def print_plugins_list(stat):
     print('')
     print('Get the plugins list::')
     print('')
-    print('    # curl {}/pluginslist'.format(API_URL))
+    print(f'    # curl {API_URL}/pluginslist')
     print(indent_stat(stat))
     print('')
 
 
 def print_plugin_export(plugin, stat_export):
-    sub_title = 'GET {}'.format(plugin)
+    sub_title = f'GET {plugin}'
     print(sub_title)
     print('-' * len(sub_title))
     print('')
 
     print('Get plugin stats::')
     print('')
-    print('    # curl {}/{}'.format(API_URL, plugin))
+    print(f'    # curl {API_URL}/{plugin}')
     print(indent_stat(stat_export))
     print('')
 
@@ -110,7 +112,7 @@ def print_plugin_description(plugin, stat):
             )
         print('')
     else:
-        logger.error('No fields_description variable defined for plugin {}'.format(plugin))
+        logger.error(f'No fields_description variable defined for plugin {plugin}')
 
 
 def print_plugin_item_value(plugin, stat, stat_export):
@@ -132,13 +134,13 @@ def print_plugin_item_value(plugin, stat, stat_export):
             value = stat_item[item]
         print('Get a specific field::')
         print('')
-        print('    # curl {}/{}/{}'.format(API_URL, plugin, item))
+        print(f'    # curl {API_URL}/{plugin}/{item}')
         print(indent_stat(stat_item))
         print('')
     if item and value and stat.get_stats_value(item, value):
         print('Get a specific item when field matchs the given value::')
         print('')
-        print('    # curl {}/{}/{}/{}'.format(API_URL, plugin, item, value))
+        print(f'    # curl {API_URL}/{plugin}/{item}/{value}')
         print(indent_stat(json.loads(stat.get_stats_value(item, value))))
         print('')
 
@@ -150,7 +152,7 @@ def print_all():
     print('')
     print('Get all Glances stats::')
     print('')
-    print('    # curl {}/all'.format(API_URL))
+    print(f'    # curl {API_URL}/all')
     print('    Return a very big dictionnary (avoid using this request, performances will be poor)...')
     print('')
 
@@ -166,22 +168,22 @@ def print_history(stats):
     print('')
     print('History of a plugin::')
     print('')
-    print('    # curl {}/cpu/history'.format(API_URL))
+    print(f'    # curl {API_URL}/cpu/history')
     print(indent_stat(json.loads(stats.get_plugin('cpu').get_stats_history(nb=3))))
     print('')
     print('Limit history to last 2 values::')
     print('')
-    print('    # curl {}/cpu/history/2'.format(API_URL))
+    print(f'    # curl {API_URL}/cpu/history/2')
     print(indent_stat(json.loads(stats.get_plugin('cpu').get_stats_history(nb=2))))
     print('')
     print('History for a specific field::')
     print('')
-    print('    # curl {}/cpu/system/history'.format(API_URL))
+    print(f'    # curl {API_URL}/cpu/system/history')
     print(indent_stat(json.loads(stats.get_plugin('cpu').get_stats_history('system'))))
     print('')
     print('Limit history for a specific field to last 2 values::')
     print('')
-    print('    # curl {}/cpu/system/history'.format(API_URL))
+    print(f'    # curl {API_URL}/cpu/system/history')
     print(indent_stat(json.loads(stats.get_plugin('cpu').get_stats_history('system', nb=2))))
     print('')
 
@@ -193,12 +195,12 @@ def print_limits(stats):
     print('')
     print('All limits/thresholds::')
     print('')
-    print('    # curl {}/all/limits'.format(API_URL))
+    print(f'    # curl {API_URL}/all/limits')
     print(indent_stat(stats.getAllLimitsAsDict()))
     print('')
     print('Limits/thresholds for the cpu plugin::')
     print('')
-    print('    # curl {}/cpu/limits'.format(API_URL))
+    print(f'    # curl {API_URL}/cpu/limits')
     print(indent_stat(stats.get_plugin('cpu').limits))
     print('')
 

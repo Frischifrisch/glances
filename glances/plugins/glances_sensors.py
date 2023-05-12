@@ -51,19 +51,25 @@ class Plugin(GlancesPlugin):
         # Init the sensor class
         start_duration.reset()
         self.glances_grab_sensors = GlancesGrabSensors()
-        logger.debug("Generic sensor plugin init duration: {} seconds".format(start_duration.get()))
+        logger.debug(
+            f"Generic sensor plugin init duration: {start_duration.get()} seconds"
+        )
 
         # Instance for the HDDTemp Plugin in order to display the hard disks
         # temperatures
         start_duration.reset()
         self.hddtemp_plugin = HddTempPlugin(args=args, config=config)
-        logger.debug("HDDTemp sensor plugin init duration: {} seconds".format(start_duration.get()))
+        logger.debug(
+            f"HDDTemp sensor plugin init duration: {start_duration.get()} seconds"
+        )
 
         # Instance for the BatPercent in order to display the batteries
         # capacities
         start_duration.reset()
         self.bat_percent_plugin = BatPercentPlugin(args=args, config=config)
-        logger.debug("Battery sensor plugin init duration: {} seconds".format(start_duration.get()))
+        logger.debug(
+            f"Battery sensor plugin init duration: {start_duration.get()} seconds"
+        )
 
         # We want to display the stat in the curse interface
         self.display_curse = True
@@ -91,7 +97,7 @@ class Plugin(GlancesPlugin):
             try:
                 temperature = self.__set_type(self.glances_grab_sensors.get('temperature_core'), 'temperature_core')
             except Exception as e:
-                logger.error("Cannot grab sensors temperatures (%s)" % e)
+                logger.error(f"Cannot grab sensors temperatures ({e})")
             else:
                 # Append temperature
                 stats.extend(temperature)
@@ -99,7 +105,7 @@ class Plugin(GlancesPlugin):
             try:
                 fan_speed = self.__set_type(self.glances_grab_sensors.get('fan_speed'), 'fan_speed')
             except Exception as e:
-                logger.error("Cannot grab FAN speed (%s)" % e)
+                logger.error(f"Cannot grab FAN speed ({e})")
             else:
                 # Append FAN speed
                 stats.extend(fan_speed)
@@ -107,7 +113,7 @@ class Plugin(GlancesPlugin):
             try:
                 hddtemp = self.__set_type(self.hddtemp_plugin.update(), 'temperature_hdd')
             except Exception as e:
-                logger.error("Cannot grab HDD temperature (%s)" % e)
+                logger.error(f"Cannot grab HDD temperature ({e})")
             else:
                 # Append HDD temperature
                 stats.extend(hddtemp)
@@ -115,17 +121,10 @@ class Plugin(GlancesPlugin):
             try:
                 bat_percent = self.__set_type(self.bat_percent_plugin.update(), 'battery')
             except Exception as e:
-                logger.error("Cannot grab battery percent (%s)" % e)
+                logger.error(f"Cannot grab battery percent ({e})")
             else:
                 # Append Batteries %
                 stats.extend(bat_percent)
-
-        elif self.input_method == 'snmp':
-            # Update stats using SNMP
-            # No standard:
-            # http://www.net-snmp.org/wiki/index.php/Net-SNMP_and_lm-sensors_on_Ubuntu_10.04
-
-            pass
 
         # Global change on stats
         self.stats = self.get_init_value()
@@ -133,9 +132,7 @@ class Plugin(GlancesPlugin):
             # Do not take hide stat into account
             if self.is_hide(stat["label"].lower()):
                 continue
-            # Set the alias for each stat
-            alias = self.has_alias(stat["label"].lower())
-            if alias:
+            if alias := self.has_alias(stat["label"].lower()):
                 stat["label"] = alias
             # Update the stats
             self.stats.append(stat)
@@ -323,16 +320,15 @@ class GlancesGrabSensors(object):
         else:
             return ret
         for chip_name, chip in iteritems(input_list):
-            i = 1
-            for feature in chip:
-                sensors_current = {}
-                # Sensor name
-                if feature.label == '':
-                    sensors_current['label'] = chip_name + ' ' + str(i)
-                else:
-                    sensors_current['label'] = feature.label
-                # Sensors value, limit and unit
-                sensors_current['value'] = int(getattr(feature, 'current', 0) if getattr(feature, 'current', 0) else 0)
+            for i, feature in enumerate(chip, start=1):
+                sensors_current = {
+                    'label': f'{chip_name} {str(i)}'
+                    if feature.label == ''
+                    else feature.label,
+                    'value': getattr(feature, 'current', 0)
+                    if getattr(feature, 'current', 0)
+                    else 0,
+                }
                 warning = getattr(feature, 'high', None)
                 sensors_current['warning'] = int(warning) if warning is not None else None
                 critical = getattr(feature, 'critical', None)
@@ -340,18 +336,16 @@ class GlancesGrabSensors(object):
                 sensors_current['unit'] = type
                 # Add sensor to the list
                 ret.append(sensors_current)
-                i += 1
         return ret
 
     def get(self, sensor_type='temperature_core'):
         """Get sensors list."""
         self.__update__()
         if sensor_type == 'temperature_core':
-            ret = [s for s in self.sensors_list if s['unit'] == SENSOR_TEMP_UNIT]
+            return [s for s in self.sensors_list if s['unit'] == SENSOR_TEMP_UNIT]
         elif sensor_type == 'fan_speed':
-            ret = [s for s in self.sensors_list if s['unit'] == SENSOR_FAN_UNIT]
+            return [s for s in self.sensors_list if s['unit'] == SENSOR_FAN_UNIT]
         else:
             # Unknown type
-            logger.debug("Unknown sensor type %s" % sensor_type)
-            ret = []
-        return ret
+            logger.debug(f"Unknown sensor type {sensor_type}")
+            return []

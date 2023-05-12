@@ -56,11 +56,10 @@ class Plugin(GlancesPlugin):
 
         if self.strftime:
             self.stats = strftime(self.strftime)
+        elif len(tzname[1]) > 6:
+            self.stats = strftime('%Y-%m-%d %H:%M:%S %z')
         else:
-            if len(tzname[1]) > 6:
-                self.stats = strftime('%Y-%m-%d %H:%M:%S %z')
-            else:
-                self.stats = strftime('%Y-%m-%d %H:%M:%S %Z')
+            self.stats = strftime('%Y-%m-%d %H:%M:%S %Z')
 
         return self.stats
 

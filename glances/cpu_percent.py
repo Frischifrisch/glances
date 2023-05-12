@@ -55,10 +55,7 @@ class CpuPercent(object):
     def get(self, percpu=False):
         """Update and/or return the CPU using the psutil library.
         If percpu, return the percpu stats"""
-        if percpu:
-            return self.__get_percpu()
-        else:
-            return self.__get_cpu()
+        return self.__get_percpu() if percpu else self.__get_cpu()
 
     def get_info(self):
         """Get additional information about the CPU"""
@@ -68,16 +65,13 @@ class CpuPercent(object):
             try:
                 cpu_freq = psutil.cpu_freq()
             except Exception as e:
-                logger.debug('Can not grab CPU information ({})'.format(e))
+                logger.debug(f'Can not grab CPU information ({e})')
             else:
                 if hasattr(cpu_freq, 'current'):
                     self.cpu_info['cpu_hz_current'] = cpu_freq.current
                 else:
                     self.cpu_info['cpu_hz_current'] = None
-                if hasattr(cpu_freq, 'max'):
-                    self.cpu_info['cpu_hz'] = cpu_freq.max
-                else:
-                    self.cpu_info['cpu_hz'] = None
+                self.cpu_info['cpu_hz'] = cpu_freq.max if hasattr(cpu_freq, 'max') else None
                 # Reset timer for cache
                 self.timer_cpu_info.reset(duration=self.cached_timer_cpu_info)
         return self.cpu_info

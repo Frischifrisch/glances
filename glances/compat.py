@@ -97,14 +97,10 @@ if PY3:
         return iter(d.values())
 
     def u(s, errors='replace'):
-        if isinstance(s, text_type):
-            return s
-        return s.decode('utf-8', errors=errors)
+        return s if isinstance(s, text_type) else s.decode('utf-8', errors=errors)
 
     def b(s, errors='replace'):
-        if isinstance(s, binary_type):
-            return s
-        return s.encode('utf-8', errors=errors)
+        return s if isinstance(s, binary_type) else s.encode('utf-8', errors=errors)
 
     def n(s):
         '''Only in Python 2...
@@ -125,7 +121,7 @@ if PY3:
         try:
             res = subprocess.run(command.split(' '), stdout=subprocess.PIPE).stdout.decode('utf-8')
         except Exception as e:
-            logger.debug('Can not evaluate command {} ({})'.format(command, e))
+            logger.debug(f'Can not evaluate command {command} ({e})')
             res = ''
         return res.rstrip()
 
@@ -200,9 +196,7 @@ else:
         return s.decode('utf-8', errors=errors)
 
     def b(s, errors='replace'):
-        if isinstance(s, binary_type):
-            return s
-        return s.encode('utf-8', errors=errors)
+        return s if isinstance(s, binary_type) else s.encode('utf-8', errors=errors)
 
     def nativestr(s, errors='replace'):
         if isinstance(s, binary_type):
@@ -217,7 +211,7 @@ else:
         try:
             res = subprocess.check_output(command.split(' '))
         except Exception as e:
-            logger.debug('Can not execute command {} ({})'.format(command, e))
+            logger.debug(f'Can not execute command {command} ({e})')
             res = ''
         return res.rstrip()
 
@@ -271,19 +265,18 @@ def is_admin():
     :return: True if the current user is an 'Admin' whatever that means (root on Unix), otherwise False.
     """
 
-    if os.name == 'nt':
-        import ctypes
-        import traceback
-
-        # WARNING: requires Windows XP SP2 or higher!
-        try:
-            return ctypes.windll.shell32.IsUserAnAdmin()
-        except Exception as e:
-            traceback.print_exc()
-            return False
-    else:
+    if os.name != 'nt':
         # Check for root on Posix
         return os.getuid() == 0
+    import ctypes
+    import traceback
+
+    # WARNING: requires Windows XP SP2 or higher!
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except Exception as e:
+        traceback.print_exc()
+        return False
 
 
 def key_exist_value_not_none(k, d):
@@ -303,14 +296,14 @@ def key_exist_value_not_none_not_v(k, d, v=''):
 
 def disable(class_name, var):
     """Set disable_<var> to True in the class class_name."""
-    setattr(class_name, 'enable_' + var, False)
-    setattr(class_name, 'disable_' + var, True)
+    setattr(class_name, f'enable_{var}', False)
+    setattr(class_name, f'disable_{var}', True)
 
 
 def enable(class_name, var):
     """Set disable_<var> to False in the class class_name."""
-    setattr(class_name, 'enable_' + var, True)
-    setattr(class_name, 'disable_' + var, False)
+    setattr(class_name, f'enable_{var}', True)
+    setattr(class_name, f'disable_{var}', False)
 
 
 def pretty_date(time=False):
@@ -337,21 +330,21 @@ def pretty_date(time=False):
         if second_diff < 10:
             return "just now"
         if second_diff < 60:
-            return str(second_diff) + " seconds"
+            return f"{str(second_diff)} seconds"
         if second_diff < 120:
             return "a minute"
         if second_diff < 3600:
-            return str(second_diff // 60) + " minutes"
+            return f"{str(second_diff // 60)} minutes"
         if second_diff < 7200:
             return "an hour"
         if second_diff < 86400:
-            return str(second_diff // 3600) + " hours"
+            return f"{str(second_diff // 3600)} hours"
     if day_diff == 1:
         return "Yesterday"
     if day_diff < 7:
-        return str(day_diff) + " days"
+        return f"{str(day_diff)} days"
     if day_diff < 31:
-        return str(day_diff // 7) + " weeks"
+        return f"{str(day_diff // 7)} weeks"
     if day_diff < 365:
-        return str(day_diff // 30) + " months"
-    return str(day_diff // 365) + " years"
+        return f"{str(day_diff // 30)} months"
+    return f"{str(day_diff // 365)} years"

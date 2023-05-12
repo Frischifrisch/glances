@@ -172,17 +172,20 @@ class Plugin(GlancesPlugin):
 
         # First line
         # total%
-        msg = '{}'.format('SWAP')
+        msg = 'SWAP'
         ret.append(self.curse_add_line(msg, "TITLE"))
         msg = ' {:3}'.format(self.trend_msg(self.get_trend('percent')))
         ret.append(self.curse_add_line(msg))
         # Percent memory usage
         msg = '{:>6.1%}'.format(self.stats['percent'] / 100)
-        ret.append(self.curse_add_line(msg, self.get_views(key='percent', option='decoration')))
-
-        # Second line
-        # total
-        ret.append(self.curse_new_line())
+        ret.extend(
+            (
+                self.curse_add_line(
+                    msg, self.get_views(key='percent', option='decoration')
+                ),
+                self.curse_new_line(),
+            )
+        )
         # Total memory usage
         ret.extend(self.curse_add_stat('total', width=16))
 

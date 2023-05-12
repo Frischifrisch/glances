@@ -254,8 +254,6 @@ class Plugin(GlancesPlugin):
             if stats['nb_log_core'] > 0:
                 stats['idle'] = stats['idle'] / stats['nb_log_core']
             stats['idle'] = 100 - stats['idle']
-            stats['total'] = 100 - stats['idle']
-
         else:
             # Default behavior
             try:
@@ -270,7 +268,7 @@ class Plugin(GlancesPlugin):
             # Convert SNMP stats to float
             for key in iterkeys(stats):
                 stats[key] = float(stats[key])
-            stats['total'] = 100 - stats['idle']
+        stats['total'] = 100 - stats['idle']
 
         return stats
 
@@ -314,14 +312,11 @@ class Plugin(GlancesPlugin):
 
         # First line
         # Total + (idle) + ctx_sw
-        msg = '{}'.format('CPU')
+        msg = 'CPU'
         ret.append(self.curse_add_line(msg, "TITLE"))
         trend_user = self.get_trend('user')
         trend_system = self.get_trend('system')
-        if trend_user is None or trend_user is None:
-            trend_cpu = None
-        else:
-            trend_cpu = trend_user + trend_system
+        trend_cpu = None if trend_user is None else trend_user + trend_system
         msg = ' {:4}'.format(self.trend_msg(trend_cpu))
         ret.append(self.curse_add_line(msg))
         # Total CPU usage

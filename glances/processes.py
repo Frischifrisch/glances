@@ -75,7 +75,7 @@ class GlancesProcesses(object):
             p = psutil.Process()
             p.io_counters()
         except Exception as e:
-            logger.warning('PsUtil can not grab processes io_counters ({})'.format(e))
+            logger.warning(f'PsUtil can not grab processes io_counters ({e})')
             self.disable_io_counters = True
         else:
             logger.debug('PsUtil can grab processes io_counters')
@@ -86,7 +86,7 @@ class GlancesProcesses(object):
             p = psutil.Process()
             p.gids()
         except Exception as e:
-            logger.warning('PsUtil can not grab processes gids ({})'.format(e))
+            logger.warning(f'PsUtil can not grab processes gids ({e})')
             self.disable_gids = True
         else:
             logger.debug('PsUtil can grab processes gids')
@@ -166,14 +166,13 @@ class GlancesProcesses(object):
 
         :returns: int or None
         """
-        if LINUX:
-            # XXX: waiting for https://github.com/giampaolo/psutil/issues/720
-            try:
-                with open('/proc/sys/kernel/pid_max', 'rb') as f:
-                    return int(f.read())
-            except (OSError, IOError):
-                return None
-        else:
+        if not LINUX:
+            return None
+        # XXX: waiting for https://github.com/giampaolo/psutil/issues/720
+        try:
+            with open('/proc/sys/kernel/pid_max', 'rb') as f:
+                return int(f.read())
+        except (OSError, IOError):
             return None
 
     @property
@@ -223,10 +222,7 @@ class GlancesProcesses(object):
     @property
     def sort_reverse(self):
         """Return True to sort processes in reverse 'key' order, False instead."""
-        if self.sort_key == 'name' or self.sort_key == 'username':
-            return False
-
-        return True
+        return self.sort_key not in ['name', 'username']
 
     def max_values(self):
         """Return the max values dict."""
@@ -242,9 +238,7 @@ class GlancesProcesses(object):
 
     def reset_max_values(self):
         """Reset the maximum values dict."""
-        self._max_values = {}
-        for k in self._max_values_list:
-            self._max_values[k] = 0.0
+        self._max_values = {k: 0.0 for k in self._max_values_list}
 
     def update(self):
         """Update the processes stats."""
@@ -330,7 +324,7 @@ class GlancesProcesses(object):
 
                     if LINUX:
                         try:
-                            extended['memory_swap'] = sum([v.swap for v in top_process.memory_maps()])
+                            extended['memory_swap'] = sum(v.swap for v in top_process.memory_maps())
                         except (psutil.NoSuchProcess, KeyError):
                             # (KeyError catch for issue #1551)
                             pass
@@ -347,10 +341,10 @@ class GlancesProcesses(object):
                         extended['tcp'] = None
                         extended['udp'] = None
                 except (psutil.NoSuchProcess, ValueError, AttributeError) as e:
-                    logger.error('Can not grab extended stats ({})'.format(e))
+                    logger.error(f'Can not grab extended stats ({e})')
                     extended['extended_stats'] = False
                 else:
-                    logger.debug('Grab extended stats for process {}'.format(proc['pid']))
+                    logger.debug(f"Grab extended stats for process {proc['pid']}")
                     extended['extended_stats'] = True
                 proc.update(extended)
             first = False
@@ -413,8 +407,7 @@ class GlancesProcesses(object):
         # Compute the maximum value for keys in self._max_values_list: CPU, MEM
         # Useful to highlight the processes with maximum values
         for k in self._max_values_list:
-            values_list = [i[k] for i in self.processlist if i[k] is not None]
-            if values_list:
+            if values_list := [i[k] for i in self.processlist if i[k] is not None]:
                 self.set_max_values(k, max(values_list))
 
     def get_count(self):
@@ -443,7 +436,7 @@ class GlancesProcesses(object):
         """Kill process with pid"""
         assert pid != os.getpid(), "Glances can kill itself..."
         p = psutil.Process(pid)
-        logger.debug('Send kill signal to process: {}'.format(p))
+        logger.debug(f'Send kill signal to process: {p}')
         p.kill()
         return p.wait(timeout)
 

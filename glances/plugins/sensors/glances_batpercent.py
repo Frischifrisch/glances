@@ -19,6 +19,7 @@
 
 """Battery plugin."""
 
+
 import psutil
 
 from glances.logger import logger
@@ -39,7 +40,7 @@ psutil_tag = True
 try:
     psutil.sensors_battery()
 except Exception as e:
-    logger.error("Cannot grab battery status {}.".format(e))
+    logger.error(f"Cannot grab battery status {e}.")
     psutil_tag = False
 
 
@@ -57,7 +58,7 @@ class Plugin(GlancesPlugin):
         try:
             self.glances_grab_bat = GlancesGrabBat()
         except Exception as e:
-            logger.error("Can not init battery class ({})".format(e))
+            logger.error(f"Can not init battery class ({e})")
             global batinfo_tag
             global psutil_tag
             batinfo_tag = False
@@ -78,11 +79,6 @@ class Plugin(GlancesPlugin):
             # Update stats
             self.glances_grab_bat.update()
             stats = self.glances_grab_bat.get()
-
-        elif self.input_method == 'snmp':
-            # Update stats using SNMP
-            # Not available
-            pass
 
         # Update the stats
         self.stats = stats
@@ -117,15 +113,15 @@ class GlancesGrabBat(object):
             #     'label': 'Battery',
             #     'value': self.battery_percent,
             #     'unit': '%'}]
-            for b in self.bat.stat:
-                self.bat_list.append(
-                    {
-                        'label': 'BAT {}'.format(b.path.split('/')[-1]),
-                        'value': b.capacity,
-                        'unit': '%',
-                        'status': b.status,
-                    }
-                )
+            self.bat_list.extend(
+                {
+                    'label': f"BAT {b.path.split('/')[-1]}",
+                    'value': b.capacity,
+                    'unit': '%',
+                    'status': b.status,
+                }
+                for b in self.bat.stat
+            )
         elif psutil_tag and hasattr(self.bat.sensors_battery(), 'percent'):
             # Use psutil to grab the stats
             # Give directly the battery percent

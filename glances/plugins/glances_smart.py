@@ -44,6 +44,7 @@ Check for admin access.  If no admin access, disable SMART plugin.
 If smartmontools is not installed, we should catch the error upstream in plugin initialization.
 """
 
+
 from glances.plugins.glances_plugin import GlancesPlugin
 from glances.logger import logger
 from glances.main import disable
@@ -54,7 +55,7 @@ try:
     from pySMART import DeviceList
 except ImportError as e:
     import_error_tag = True
-    logger.warning("Missing Python Lib ({}), HDD Smart plugin is disabled".format(e))
+    logger.warning(f"Missing Python Lib ({e}), HDD Smart plugin is disabled")
 else:
     import_error_tag = False
 
@@ -99,21 +100,15 @@ def get_smart_data():
         devlist = DeviceList()
     except TypeError as e:
         # Catch error  (see #1806)
-        logger.debug('Smart plugin error - Can not grab device list ({})'.format(e))
+        logger.debug(f'Smart plugin error - Can not grab device list ({e})')
         global import_error_tag
         import_error_tag = True
         return stats
 
     for dev in devlist.devices:
-        stats.append(
-            {
-                'DeviceName': '{} {}'.format(dev.name, dev.model),
-            }
-        )
+        stats.append({'DeviceName': f'{dev.name} {dev.model}'})
         for attribute in dev.attributes:
-            if attribute is None:
-                pass
-            else:
+            if attribute is not None:
                 attrib_dict = convert_attribute_to_dict(attribute)
 
                 # we will use the attribute number as the key
@@ -122,7 +117,7 @@ def get_smart_data():
                     assert num is not None
                 except Exception as e:
                     # we should never get here, but if we do, continue to next iteration and skip this attribute
-                    logger.debug('Smart plugin error - Skip the attribute {} ({})'.format(attribute, e))
+                    logger.debug(f'Smart plugin error - Skip the attribute {attribute} ({e})')
                     continue
 
                 stats[-1][num] = attrib_dict
@@ -159,9 +154,6 @@ class Plugin(GlancesPlugin):
 
         if self.input_method == 'local':
             stats = get_smart_data()
-        elif self.input_method == 'snmp':
-            pass
-
         # Update the stats
         self.stats = stats
 
@@ -197,8 +189,12 @@ class Plugin(GlancesPlugin):
                 msg = ' {:{width}}'.format(
                     device_stat[smart_stat]['name'][: name_max_width - 1].replace('_', ' '), width=name_max_width - 1
                 )
-                ret.append(self.curse_add_line(msg))
-                msg = '{:>8}'.format(device_stat[smart_stat]['raw'])
-                ret.append(self.curse_add_line(msg))
-
+                ret.extend(
+                    (
+                        self.curse_add_line(msg),
+                        self.curse_add_line(
+                            '{:>8}'.format(device_stat[smart_stat]['raw'])
+                        ),
+                    )
+                )
         return ret

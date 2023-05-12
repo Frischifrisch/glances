@@ -86,10 +86,14 @@ class Export(GlancesExport):
                     debug=self.debug,
                 )
         except Exception as e:
-            logger.error("Can not write data to Graphite server: {}:{} ({})".format(self.host, self.port, e))
+            logger.error(
+                f"Can not write data to Graphite server: {self.host}:{self.port} ({e})"
+            )
             client = None
         else:
-            logger.info("Stats will be exported to Graphite server: {}:{}".format(self.host, self.port))
+            logger.info(
+                f"Stats will be exported to Graphite server: {self.host}:{self.port}"
+            )
 
         return client
 
@@ -97,22 +101,21 @@ class Export(GlancesExport):
         """Export the stats to the Graphite server."""
         if self.client is None:
             return False
-        before_filtering_dict = dict(zip([normalize('{}.{}'.format(name, i)) for i in columns], points))
+        before_filtering_dict = dict(
+            zip([normalize(f'{name}.{i}') for i in columns], points)
+        )
         after_filtering_dict = dict(filter(lambda i: isinstance(i[1], Number), before_filtering_dict.items()))
         try:
             self.client.send_dict(after_filtering_dict)
         except Exception as e:
-            logger.error("Can not export stats to Graphite (%s)" % e)
+            logger.error(f"Can not export stats to Graphite ({e})")
             return False
         else:
-            logger.debug("Export {} stats to Graphite".format(name))
+            logger.debug(f"Export {name} stats to Graphite")
         return True
 
 
 def normalize(name):
     """Normalize name for the Graphite convention"""
 
-    # Name should not contain space
-    ret = name.replace(' ', '_')
-
-    return ret
+    return name.replace(' ', '_')

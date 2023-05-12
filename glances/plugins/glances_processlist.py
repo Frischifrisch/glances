@@ -131,9 +131,7 @@ class Plugin(GlancesPlugin):
         if config is not None:
             if 'processlist' in config.as_dict() and 'sort_key' in config.as_dict()['processlist']:
                 logger.debug(
-                    'Configuration overwrites processes sort key by {}'.format(
-                        config.as_dict()['processlist']['sort_key']
-                    )
+                    f"Configuration overwrites processes sort key by {config.as_dict()['processlist']['sort_key']}"
                 )
                 glances_processes.set_sort_key(config.as_dict()['processlist']['sort_key'], False)
 
@@ -159,10 +157,6 @@ class Plugin(GlancesPlugin):
             stats = glances_processes.getlist()
             if self.args.programs:
                 stats = processes_to_programs(stats)
-
-        elif self.input_method == 'snmp':
-            # No SNMP grab for processes
-            pass
 
         # Update the stats
         self.stats = stats
@@ -197,21 +191,21 @@ class Plugin(GlancesPlugin):
         """Return process CPU curses"""
         if key_exist_value_not_none_not_v('cpu_percent', p, ''):
             cpu_layout = self.layout_stat['cpu'] if p['cpu_percent'] < 100 else self.layout_stat['cpu_no_digit']
-            if args.disable_irix and self.nb_log_core != 0:
-                msg = cpu_layout.format(p['cpu_percent'] / float(self.nb_log_core))
-            else:
-                msg = cpu_layout.format(p['cpu_percent'])
+            msg = (
+                cpu_layout.format(p['cpu_percent'] / float(self.nb_log_core))
+                if args.disable_irix and self.nb_log_core != 0
+                else cpu_layout.format(p['cpu_percent'])
+            )
             alert = self.get_alert(
                 p['cpu_percent'],
                 highlight_zero=False,
                 is_max=(p['cpu_percent'] == self.max_values['cpu_percent']),
                 header="cpu",
             )
-            ret = self.curse_add_line(msg, alert)
+            return self.curse_add_line(msg, alert)
         else:
             msg = self.layout_header['cpu'].format('?')
-            ret = self.curse_add_line(msg)
-        return ret
+            return self.curse_add_line(msg)
 
     def _get_process_curses_mem(self, p, selected, args):
         """Return process MEM curses"""
@@ -223,31 +217,28 @@ class Plugin(GlancesPlugin):
                 is_max=(p['memory_percent'] == self.max_values['memory_percent']),
                 header="mem",
             )
-            ret = self.curse_add_line(msg, alert)
+            return self.curse_add_line(msg, alert)
         else:
             msg = self.layout_header['mem'].format('?')
-            ret = self.curse_add_line(msg)
-        return ret
+            return self.curse_add_line(msg)
 
     def _get_process_curses_vms(self, p, selected, args):
         """Return process VMS curses"""
         if key_exist_value_not_none_not_v('memory_info', p, ''):
             msg = self.layout_stat['virt'].format(self.auto_unit(p['memory_info'][1], low_precision=False))
-            ret = self.curse_add_line(msg, optional=True)
+            return self.curse_add_line(msg, optional=True)
         else:
             msg = self.layout_header['virt'].format('?')
-            ret = self.curse_add_line(msg)
-        return ret
+            return self.curse_add_line(msg)
 
     def _get_process_curses_rss(self, p, selected, args):
         """Return process RSS curses"""
         if key_exist_value_not_none_not_v('memory_info', p, ''):
             msg = self.layout_stat['res'].format(self.auto_unit(p['memory_info'][0], low_precision=False))
-            ret = self.curse_add_line(msg, optional=True)
+            return self.curse_add_line(msg, optional=True)
         else:
             msg = self.layout_header['res'].format('?')
-            ret = self.curse_add_line(msg)
-        return ret
+            return self.curse_add_line(msg)
 
     def _get_process_curses_username(self, p, selected, args):
         """Return process username curses"""
@@ -255,11 +246,9 @@ class Plugin(GlancesPlugin):
             # docker internal users are displayed as ints only, therefore str()
             # Correct issue #886 on Windows OS
             msg = self.layout_stat['user'].format(str(p['username'])[:9])
-            ret = self.curse_add_line(msg)
         else:
             msg = self.layout_header['user'].format('?')
-            ret = self.curse_add_line(msg)
-        return ret
+        return self.curse_add_line(msg)
 
     def _get_process_curses_time(self, p, selected, args):
         """Return process time curses"""
@@ -279,9 +268,9 @@ class Plugin(GlancesPlugin):
             if hours > 99:
                 msg = '{:<7}h'.format(hours)
             elif 0 < hours < 100:
-                msg = '{}h{}:{}'.format(hours, minutes, seconds)
+                msg = f'{hours}h{minutes}:{seconds}'
             else:
-                msg = '{}:{}'.format(minutes, seconds)
+                msg = f'{minutes}:{seconds}'
             msg = self.layout_stat['time'].format(msg)
             if hours > 0:
                 ret = self.curse_add_line(msg, decoration='CPU_TIME', optional=True)
@@ -296,11 +285,9 @@ class Plugin(GlancesPlugin):
             if num_threads is None:
                 num_threads = '?'
             msg = self.layout_stat['thread'].format(num_threads)
-            ret = self.curse_add_line(msg)
         else:
             msg = self.layout_header['thread'].format('?')
-            ret = self.curse_add_line(msg)
-        return ret
+        return self.curse_add_line(msg)
 
     def _get_process_curses_nice(self, p, selected, args):
         """Return process nice curses"""
@@ -309,25 +296,24 @@ class Plugin(GlancesPlugin):
             if nice is None:
                 nice = '?'
             msg = self.layout_stat['nice'].format(nice)
-            ret = self.curse_add_line(msg, decoration=self.get_nice_alert(nice))
+            return self.curse_add_line(msg, decoration=self.get_nice_alert(nice))
         else:
             msg = self.layout_header['nice'].format('?')
-            ret = self.curse_add_line(msg)
-        return ret
+            return self.curse_add_line(msg)
 
     def _get_process_curses_status(self, p, selected, args):
         """Return process status curses"""
         if 'status' in p:
             status = p['status']
             msg = self.layout_stat['status'].format(status)
-            if status == 'R':
-                ret = self.curse_add_line(msg, decoration='STATUS')
-            else:
-                ret = self.curse_add_line(msg)
+            return (
+                self.curse_add_line(msg, decoration='STATUS')
+                if status == 'R'
+                else self.curse_add_line(msg)
+            )
         else:
             msg = self.layout_header['status'].format('?')
-            ret = self.curse_add_line(msg)
-        return ret
+            return self.curse_add_line(msg)
 
     def _get_process_curses_io(self, p, selected, args, rorw='ior'):
         """Return process IO Read or Write curses"""
@@ -342,11 +328,9 @@ class Plugin(GlancesPlugin):
                 msg = self.layout_stat[rorw].format("0")
             else:
                 msg = self.layout_stat[rorw].format(self.auto_unit(io, low_precision=True))
-            ret = self.curse_add_line(msg, optional=True, additional=True)
         else:
             msg = self.layout_header[rorw].format("?")
-            ret = self.curse_add_line(msg, optional=True, additional=True)
-        return ret
+        return self.curse_add_line(msg, optional=True, additional=True)
 
     def _get_process_curses_io_read(self, p, selected, args):
         """Return process IO Read curses"""

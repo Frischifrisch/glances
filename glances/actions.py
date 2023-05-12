@@ -46,10 +46,7 @@ class GlancesActions(object):
 
         # Add a timer to avoid any trigger when Glances is started (issue#732)
         # Action can be triggered after refresh * 2 seconds
-        if hasattr(args, 'time'):
-            self.start_timer = Timer(args.time * 2)
-        else:
-            self.start_timer = Timer(3)
+        self.start_timer = Timer(args.time * 2) if hasattr(args, 'time') else Timer(3)
 
     def get(self, stat_name):
         """Get the stat_name criticality."""
@@ -78,26 +75,21 @@ class GlancesActions(object):
             return False
 
         logger.debug(
-            "{} action {} for {} ({}) with stats {}".format(
-                "Repeat" if repeat else "Run", commands, stat_name, criticality, mustache_dict
-            )
+            f'{"Repeat" if repeat else "Run"} action {commands} for {stat_name} ({criticality}) with stats {mustache_dict}'
         )
 
         # Run all actions in background
         for cmd in commands:
             # Replace {{arg}} by the dict one (Thk to {Mustache})
-            if chevron_tag:
-                cmd_full = chevron.render(cmd, mustache_dict)
-            else:
-                cmd_full = cmd
+            cmd_full = chevron.render(cmd, mustache_dict) if chevron_tag else cmd
             # Execute the action
-            logger.info("Action triggered for {} ({}): {}".format(stat_name, criticality, cmd_full))
+            logger.info(f"Action triggered for {stat_name} ({criticality}): {cmd_full}")
             try:
                 ret = secure_popen(cmd_full)
             except OSError as e:
-                logger.error("Action error for {} ({}): {}".format(stat_name, criticality, e))
+                logger.error(f"Action error for {stat_name} ({criticality}): {e}")
             else:
-                logger.debug("Action result for {} ({}): {}".format(stat_name, criticality, ret))
+                logger.debug(f"Action result for {stat_name} ({criticality}): {ret}")
 
         self.set(stat_name, criticality)
 

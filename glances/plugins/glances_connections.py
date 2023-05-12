@@ -91,7 +91,7 @@ class Plugin(GlancesPlugin):
                 try:
                     net_connections = psutil.net_connections(kind="tcp")
                 except Exception as e:
-                    logger.debug('Can not get network connections stats ({})'.format(e))
+                    logger.debug(f'Can not get network connections stats ({e})')
                     self.net_connections_enabled = False
                     self.stats = stats
                     return self.stats
@@ -116,15 +116,11 @@ class Plugin(GlancesPlugin):
                         with open(self.conntrack[i], 'r') as f:
                             stats[i] = float(f.readline().rstrip("\n"))
                     except IOError as e:
-                        logger.debug('Can not get network connections track ({})'.format(e))
+                        logger.debug(f'Can not get network connections track ({e})')
                         self.nf_conntrack_enabled = False
                         self.stats = stats
                         return self.stats
                 stats['nf_conntrack_percent'] = stats['nf_conntrack_count'] * 100 / stats['nf_conntrack_max']
-
-        elif self.input_method == 'snmp':
-            # Update stats using SNMP
-            pass
 
         # Update the stats
         self.stats = stats
@@ -155,7 +151,7 @@ class Plugin(GlancesPlugin):
 
         # Header
         if self.net_connections_enabled or self.nf_conntrack_enabled:
-            msg = '{}'.format('TCP CONNECTIONS')
+            msg = 'TCP CONNECTIONS'
             ret.append(self.curse_add_line(msg, "TITLE"))
         # Connections status
         if self.net_connections_enabled:

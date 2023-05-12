@@ -66,11 +66,7 @@ class Export(GlancesExport):
             return None
 
         # Correct issue #1530
-        if self.protocol is not None and (self.protocol.lower() == 'https'):
-            ssl = True
-        else:
-            ssl = False
-
+        ssl = self.protocol is not None and self.protocol.lower() == 'https'
         try:
             db = InfluxDBClient(
                 host=self.host,
@@ -83,13 +79,15 @@ class Export(GlancesExport):
             )
             get_all_db = [i['name'] for i in db.get_list_database()]
         except InfluxDBClientError as e:
-            logger.critical("Cannot connect to InfluxDB database '%s' (%s)" % (self.db, e))
+            logger.critical(f"Cannot connect to InfluxDB database '{self.db}' ({e})")
             sys.exit(2)
 
         if self.db in get_all_db:
-            logger.info("Stats will be exported to InfluxDB server: {}".format(db._baseurl))
+            logger.info(f"Stats will be exported to InfluxDB server: {db._baseurl}")
         else:
-            logger.critical("InfluxDB database '%s' did not exist. Please create it" % self.db)
+            logger.critical(
+                f"InfluxDB database '{self.db}' did not exist. Please create it"
+            )
             sys.exit(2)
 
         return db
@@ -107,24 +105,24 @@ class Export(GlancesExport):
         # issue1871 - Check if a key exist. If a key exist, the value of
         # the key should be used as a tag to identify the measurement.
         keys_list = [k.split('.')[0] for k in columns if k.endswith('.key')]
-        if len(keys_list) == 0:
+        if not keys_list:
             keys_list = [None]
 
         for measurement in keys_list:
             # Manage field
             if measurement is not None:
                 fields = {
-                    k.replace('{}.'.format(measurement), ''): data_dict[k]
+                    k.replace(f'{measurement}.', ''): data_dict[k]
                     for k in data_dict
-                    if k.startswith('{}.'.format(measurement))
+                    if k.startswith(f'{measurement}.')
                 }
             else:
                 fields = data_dict
             # Transform to InfluxDB data model
             # https://docs.influxdata.com/influxdb/v1.8/write_protocols/line_protocol_reference/
-            for k in fields:
+            for k, v in fields.items():
                 #  Do not export empty (None) value
-                if fields[k] is None:
+                if v is None:
                     continue
                 # Convert numerical to float
                 try:
@@ -153,15 +151,15 @@ class Export(GlancesExport):
         """Write the points to the InfluxDB server."""
         # Manage prefix
         if self.prefix is not None:
-            name = self.prefix + '.' + name
+            name = f'{self.prefix}.{name}'
         # Write input to the InfluxDB database
         if len(points) == 0:
-            logger.debug("Cannot export empty {} stats to InfluxDB".format(name))
+            logger.debug(f"Cannot export empty {name} stats to InfluxDB")
         else:
             try:
                 self.client.write_points(self._normalize(name, columns, points), time_precision="s")
             except Exception as e:
                 # Log level set to debug instead of error (see: issue #1561)
-                logger.debug("Cannot export {} stats to InfluxDB ({})".format(name, e))
+                logger.debug(f"Cannot export {name} stats to InfluxDB ({e})")
             else:
-                logger.debug("Export {} stats to InfluxDB".format(name))
+                logger.debug(f"Export {name} stats to InfluxDB")

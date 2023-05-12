@@ -97,7 +97,7 @@ class GlancesBottle(object):
         self.load_config(config)
 
         # Set the bind URL
-        self.bind_url = 'http://{}:{}/'.format(self.args.bind_address, self.args.port)
+        self.bind_url = f'http://{self.args.bind_address}:{self.args.port}/'
 
         # Init Bottle
         self._app = Bottle()
@@ -121,7 +121,7 @@ class GlancesBottle(object):
         if config is not None and config.has_section('outputs'):
             logger.debug('Read number of processes to display in the WebUI')
             n = config.get_value('outputs', 'max_processes_display', default=None)
-            logger.debug('Number of processes to display in the WebUI: {}'.format(n))
+            logger.debug(f'Number of processes to display in the WebUI: {n}')
 
     def __update__(self):
         # Never update more than 1 time per cached_time
@@ -145,32 +145,94 @@ class GlancesBottle(object):
     def _route(self):
         """Define route."""
         # REST API
-        self._app.route('/api/%s/status' % self.API_VERSION, method="GET", callback=self._api_status)
-        self._app.route('/api/%s/config' % self.API_VERSION, method="GET", callback=self._api_config)
-        self._app.route('/api/%s/config/<item>' % self.API_VERSION, method="GET", callback=self._api_config_item)
-        self._app.route('/api/%s/args' % self.API_VERSION, method="GET", callback=self._api_args)
-        self._app.route('/api/%s/args/<item>' % self.API_VERSION, method="GET", callback=self._api_args_item)
-        self._app.route('/api/%s/help' % self.API_VERSION, method="GET", callback=self._api_help)
-        self._app.route('/api/%s/pluginslist' % self.API_VERSION, method="GET", callback=self._api_plugins)
-        self._app.route('/api/%s/all' % self.API_VERSION, method="GET", callback=self._api_all)
-        self._app.route('/api/%s/all/limits' % self.API_VERSION, method="GET", callback=self._api_all_limits)
-        self._app.route('/api/%s/all/views' % self.API_VERSION, method="GET", callback=self._api_all_views)
-        self._app.route('/api/%s/<plugin>' % self.API_VERSION, method="GET", callback=self._api)
-        self._app.route('/api/%s/<plugin>/history' % self.API_VERSION, method="GET", callback=self._api_history)
         self._app.route(
-            '/api/%s/<plugin>/history/<nb:int>' % self.API_VERSION, method="GET", callback=self._api_history
-        )
-        self._app.route('/api/%s/<plugin>/limits' % self.API_VERSION, method="GET", callback=self._api_limits)
-        self._app.route('/api/%s/<plugin>/views' % self.API_VERSION, method="GET", callback=self._api_views)
-        self._app.route('/api/%s/<plugin>/<item>' % self.API_VERSION, method="GET", callback=self._api_item)
-        self._app.route(
-            '/api/%s/<plugin>/<item>/history' % self.API_VERSION, method="GET", callback=self._api_item_history
+            f'/api/{self.API_VERSION}/status',
+            method="GET",
+            callback=self._api_status,
         )
         self._app.route(
-            '/api/%s/<plugin>/<item>/history/<nb:int>' % self.API_VERSION, method="GET", callback=self._api_item_history
+            f'/api/{self.API_VERSION}/config',
+            method="GET",
+            callback=self._api_config,
         )
-        self._app.route('/api/%s/<plugin>/<item>/<value>' % self.API_VERSION, method="GET", callback=self._api_value)
-        bindmsg = 'Glances RESTful API Server started on {}api/{}/'.format(self.bind_url, self.API_VERSION)
+        self._app.route(
+            f'/api/{self.API_VERSION}/config/<item>',
+            method="GET",
+            callback=self._api_config_item,
+        )
+        self._app.route(
+            f'/api/{self.API_VERSION}/args', method="GET", callback=self._api_args
+        )
+        self._app.route(
+            f'/api/{self.API_VERSION}/args/<item>',
+            method="GET",
+            callback=self._api_args_item,
+        )
+        self._app.route(
+            f'/api/{self.API_VERSION}/help', method="GET", callback=self._api_help
+        )
+        self._app.route(
+            f'/api/{self.API_VERSION}/pluginslist',
+            method="GET",
+            callback=self._api_plugins,
+        )
+        self._app.route(
+            f'/api/{self.API_VERSION}/all', method="GET", callback=self._api_all
+        )
+        self._app.route(
+            f'/api/{self.API_VERSION}/all/limits',
+            method="GET",
+            callback=self._api_all_limits,
+        )
+        self._app.route(
+            f'/api/{self.API_VERSION}/all/views',
+            method="GET",
+            callback=self._api_all_views,
+        )
+        self._app.route(
+            f'/api/{self.API_VERSION}/<plugin>', method="GET", callback=self._api
+        )
+        self._app.route(
+            f'/api/{self.API_VERSION}/<plugin>/history',
+            method="GET",
+            callback=self._api_history,
+        )
+        self._app.route(
+            f'/api/{self.API_VERSION}/<plugin>/history/<nb:int>',
+            method="GET",
+            callback=self._api_history,
+        )
+        self._app.route(
+            f'/api/{self.API_VERSION}/<plugin>/limits',
+            method="GET",
+            callback=self._api_limits,
+        )
+        self._app.route(
+            f'/api/{self.API_VERSION}/<plugin>/views',
+            method="GET",
+            callback=self._api_views,
+        )
+        self._app.route(
+            f'/api/{self.API_VERSION}/<plugin>/<item>',
+            method="GET",
+            callback=self._api_item,
+        )
+        self._app.route(
+            f'/api/{self.API_VERSION}/<plugin>/<item>/history',
+            method="GET",
+            callback=self._api_item_history,
+        )
+        self._app.route(
+            f'/api/{self.API_VERSION}/<plugin>/<item>/history/<nb:int>',
+            method="GET",
+            callback=self._api_item_history,
+        )
+        self._app.route(
+            f'/api/{self.API_VERSION}/<plugin>/<item>/<value>',
+            method="GET",
+            callback=self._api_value,
+        )
+        bindmsg = f'Glances RESTful API Server started on {self.bind_url}api/{self.API_VERSION}/'
         logger.info(bindmsg)
 
         # WEB UI
@@ -178,7 +240,7 @@ class GlancesBottle(object):
             self._app.route('/', method="GET", callback=self._index)
             self._app.route('/<refresh_time:int>', method=["GET"], callback=self._index)
             self._app.route('/<filepath:path>', method="GET", callback=self._resource)
-            bindmsg = 'Glances Web User Interface started on {}'.format(self.bind_url)
+            bindmsg = f'Glances Web User Interface started on {self.bind_url}'
             logger.info(bindmsg)
         else:
             logger.info('The WebUI is disable (--disable-webui)')
@@ -204,7 +266,7 @@ class GlancesBottle(object):
         try:
             self._app.run(host=self.args.bind_address, port=self.args.port, quiet=not self.args.debug)
         except socket.error as e:
-            logger.critical('Error: Can not ran Glances Web server ({})'.format(e))
+            logger.critical(f'Error: Can not ran Glances Web server ({e})')
 
     def end(self):
         """End the bottle."""
@@ -253,7 +315,7 @@ class GlancesBottle(object):
         try:
             plist = json.dumps(view_data, sort_keys=True)
         except Exception as e:
-            abort(404, "Cannot get help view data (%s)" % str(e))
+            abort(404, f"Cannot get help view data ({str(e)})")
         return plist
 
     @compress
@@ -291,7 +353,7 @@ class GlancesBottle(object):
         try:
             plist = json.dumps(self.plugins_list)
         except Exception as e:
-            abort(404, "Cannot get plugin list (%s)" % str(e))
+            abort(404, f"Cannot get plugin list ({str(e)})")
         return plist
 
     @compress
@@ -311,7 +373,7 @@ class GlancesBottle(object):
                 with open(fname) as f:
                     return f.read()
             except IOError:
-                logger.debug("Debug file (%s) not found" % fname)
+                logger.debug(f"Debug file ({fname}) not found")
 
         # Update the stat
         self.__update__()
@@ -320,7 +382,7 @@ class GlancesBottle(object):
             # Get the JSON value of the stat ID
             statval = json.dumps(self.stats.getAllAsDict())
         except Exception as e:
-            abort(404, "Cannot get stats (%s)" % str(e))
+            abort(404, f"Cannot get stats ({str(e)})")
 
         return statval
 
@@ -339,7 +401,7 @@ class GlancesBottle(object):
             # Get the JSON value of the stat limits
             limits = json.dumps(self.stats.getAllLimitsAsDict())
         except Exception as e:
-            abort(404, "Cannot get limits (%s)" % (str(e)))
+            abort(404, f"Cannot get limits ({str(e)})")
         return limits
 
     @compress
@@ -357,7 +419,7 @@ class GlancesBottle(object):
             # Get the JSON value of the stat view
             limits = json.dumps(self.stats.getAllViewsAsDict())
         except Exception as e:
-            abort(404, "Cannot get views (%s)" % (str(e)))
+            abort(404, f"Cannot get views ({str(e)})")
         return limits
 
     @compress
@@ -372,7 +434,7 @@ class GlancesBottle(object):
         response.content_type = 'application/json; charset=utf-8'
 
         if plugin not in self.plugins_list:
-            abort(400, "Unknown plugin %s (available plugins: %s)" % (plugin, self.plugins_list))
+            abort(400, f"Unknown plugin {plugin} (available plugins: {self.plugins_list})")
 
         # Update the stat
         self.__update__()
@@ -381,7 +443,7 @@ class GlancesBottle(object):
             # Get the JSON value of the stat ID
             statval = self.stats.get_plugin(plugin).get_stats()
         except Exception as e:
-            abort(404, "Cannot get plugin %s (%s)" % (plugin, str(e)))
+            abort(404, f"Cannot get plugin {plugin} ({str(e)})")
 
         return statval
 
@@ -398,7 +460,7 @@ class GlancesBottle(object):
         response.content_type = 'application/json; charset=utf-8'
 
         if plugin not in self.plugins_list:
-            abort(400, "Unknown plugin %s (available plugins: %s)" % (plugin, self.plugins_list))
+            abort(400, f"Unknown plugin {plugin} (available plugins: {self.plugins_list})")
 
         # Update the stat
         self.__update__()
@@ -407,7 +469,7 @@ class GlancesBottle(object):
             # Get the JSON value of the stat ID
             statval = self.stats.get_plugin(plugin).get_stats_history(nb=int(nb))
         except Exception as e:
-            abort(404, "Cannot get plugin history %s (%s)" % (plugin, str(e)))
+            abort(404, f"Cannot get plugin history {plugin} ({str(e)})")
         return statval
 
     @compress
@@ -422,7 +484,7 @@ class GlancesBottle(object):
         response.content_type = 'application/json; charset=utf-8'
 
         if plugin not in self.plugins_list:
-            abort(400, "Unknown plugin %s (available plugins: %s)" % (plugin, self.plugins_list))
+            abort(400, f"Unknown plugin {plugin} (available plugins: {self.plugins_list})")
 
         # Update the stat
         # self.__update__()
@@ -431,7 +493,7 @@ class GlancesBottle(object):
             # Get the JSON value of the stat limits
             ret = self.stats.get_plugin(plugin).limits
         except Exception as e:
-            abort(404, "Cannot get limits for plugin %s (%s)" % (plugin, str(e)))
+            abort(404, f"Cannot get limits for plugin {plugin} ({str(e)})")
         return ret
 
     @compress
@@ -446,7 +508,7 @@ class GlancesBottle(object):
         response.content_type = 'application/json; charset=utf-8'
 
         if plugin not in self.plugins_list:
-            abort(400, "Unknown plugin %s (available plugins: %s)" % (plugin, self.plugins_list))
+            abort(400, f"Unknown plugin {plugin} (available plugins: {self.plugins_list})")
 
         # Update the stat
         # self.__update__()
@@ -455,7 +517,7 @@ class GlancesBottle(object):
             # Get the JSON value of the stat views
             ret = self.stats.get_plugin(plugin).get_views()
         except Exception as e:
-            abort(404, "Cannot get views for plugin %s (%s)" % (plugin, str(e)))
+            abort(404, f"Cannot get views for plugin {plugin} ({str(e)})")
         return ret
 
     # No compression see issue #1228
@@ -465,7 +527,7 @@ class GlancesBottle(object):
         response.content_type = 'application/json; charset=utf-8'
 
         if plugin not in self.plugins_list:
-            abort(400, "Unknown plugin %s (available plugins: %s)" % (plugin, self.plugins_list))
+            abort(400, f"Unknown plugin {plugin} (available plugins: {self.plugins_list})")
 
         # Update the stat
         self.__update__()
@@ -477,7 +539,10 @@ class GlancesBottle(object):
                 ret = self.stats.get_plugin(plugin).get_stats_item(item)
 
             if ret is None:
-                abort(404, "Cannot get item %s%s in plugin %s" % (item, 'history ' if history else '', plugin))
+                abort(
+                    404,
+                    f"Cannot get item {item}{'history ' if history else ''} in plugin {plugin}",
+                )
         else:
             if history:
                 # Not available
@@ -487,7 +552,8 @@ class GlancesBottle(object):
 
             if ret is None:
                 abort(
-                    404, "Cannot get item %s(%s=%s) in plugin %s" % ('history ' if history else '', item, value, plugin)
+                    404,
+                    f"Cannot get item {'history ' if history else ''}({item}={value}) in plugin {plugin}",
                 )
 
         return ret
@@ -541,7 +607,7 @@ class GlancesBottle(object):
             # Get the JSON value of the config' dict
             args_json = json.dumps(self.config.as_dict())
         except Exception as e:
-            abort(404, "Cannot get config (%s)" % str(e))
+            abort(404, f"Cannot get config ({str(e)})")
         return args_json
 
     @compress
@@ -557,13 +623,13 @@ class GlancesBottle(object):
 
         config_dict = self.config.as_dict()
         if item not in config_dict:
-            abort(400, "Unknown configuration item %s" % item)
+            abort(400, f"Unknown configuration item {item}")
 
         try:
             # Get the JSON value of the config' dict
             args_json = json.dumps(config_dict[item])
         except Exception as e:
-            abort(404, "Cannot get config item (%s)" % str(e))
+            abort(404, f"Cannot get config item ({str(e)})")
         return args_json
 
     @compress
@@ -582,7 +648,7 @@ class GlancesBottle(object):
             # Source: https://docs.python.org/%s/library/functions.html#vars
             args_json = json.dumps(vars(self.args))
         except Exception as e:
-            abort(404, "Cannot get args (%s)" % str(e))
+            abort(404, f"Cannot get args ({str(e)})")
         return args_json
 
     @compress
@@ -597,7 +663,7 @@ class GlancesBottle(object):
         response.content_type = 'application/json; charset=utf-8'
 
         if item not in self.args:
-            abort(400, "Unknown argument item %s" % item)
+            abort(400, f"Unknown argument item {item}")
 
         try:
             # Get the JSON value of the args' dict
@@ -605,7 +671,7 @@ class GlancesBottle(object):
             # Source: https://docs.python.org/%s/library/functions.html#vars
             args_json = json.dumps(vars(self.args)[item])
         except Exception as e:
-            abort(404, "Cannot get args item (%s)" % str(e))
+            abort(404, f"Cannot get args item ({str(e)})")
         return args_json
 
 
